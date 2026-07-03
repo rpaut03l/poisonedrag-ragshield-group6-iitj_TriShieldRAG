@@ -1,6 +1,6 @@
 <a id="top"></a>
 
-[⬅ Back to Index](RAGSHIELD_INDEX.md#top) · [Numericals ➡](RAGSHIELD_NUMERICALS.md#top) · [Practice ➡](RAGSHIELD_PRACTICE.md#top)
+[⬅ Back to Index](RAGSHIELD_The_3Rs_INDEX.md#top) · [Numericals ➡](RAGSHIELD_The_3Rs_NUMERICALS.md#top) · [Practice ➡](RAGSHIELD_The_3Rs_PRACTICE.md#top)
 
 # 📘 RAG-Shield THEORY — What, Why, and How It Compares
 
@@ -175,7 +175,7 @@ docs yet) and ask "does this look crafted/fake?"
 ```
 
 Full math for all three is in
-[NUMERICALS.md, Section D](RAGSHIELD_NUMERICALS.md#d-ring1-math).
+[NUMERICALS.md, Section D](RAGSHIELD_The_3Rs_NUMERICALS.md#d-ring1-math).
 
 [⬆ Back to top](#top)
 
@@ -208,7 +208,7 @@ Ingredient 3 — Retrieval score = "How well did this match the
   DESIGNED to score high here (remember the "S" in P=S+I).
 ```
 
-Full math in [NUMERICALS.md, Section E](RAGSHIELD_NUMERICALS.md#e-ring2-math).
+Full math in [NUMERICALS.md, Section E](RAGSHIELD_The_3Rs_NUMERICALS.md#e-ring2-math).
 
 [⬆ Back to top](#top)
 
@@ -251,7 +251,7 @@ different safety training, different "personalities." A poison
 document cleverly worded to fool Claude might not fool Mistral or
 LLaMA the same way. Diversity of failure is the whole point.
 
-Full math in [NUMERICALS.md, Section F](RAGSHIELD_NUMERICALS.md#f-ring3-math).
+Full math in [NUMERICALS.md, Section F](RAGSHIELD_The_3Rs_NUMERICALS.md#f-ring3-math).
 
 [⬆ Back to top](#top)
 
@@ -433,4 +433,4 @@ SAFE A: "True, and that's an honest, stated limitation — we're
 
 ---
 
-[⬅ Back to Index](RAGSHIELD_INDEX.md#top) · [Numericals ➡](RAGSHIELD_NUMERICALS.md#top) · [Practice ➡](RAGSHIELD_PRACTICE.md#top)
+[⬅ Back to Index](RAGSHIELD_The_3Rs_INDEX.md#top) · [Numericals ➡](RAGSHIELD_The_3Rs_NUMERICALS.md#top) · [Practice ➡](RAGSHIELD_The_3Rs_PRACTICE.md#top)
