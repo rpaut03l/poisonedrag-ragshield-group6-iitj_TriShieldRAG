@@ -1,6 +1,6 @@
 <a id="top"></a>
 
-[⬅ Theory](RAGSHIELD_THEORY.md#top) · [⬅ Back to Index](RAGSHIELD_INDEX.md#top) · [Practice ➡](RAGSHIELD_PRACTICE.md#top)
+[⬅ Theory](RAGSHIELD_The_3Rs_THEORY.md#top) · [⬅ Back to Index](RAGSHIELD_The_3Rs_INDEX.md#top) · [Practice ➡](RAGSHIELD_The_3Rs_PRACTICE.md#top)
 
 # 🧮 RAG-Shield NUMERICALS — Every Formula, Worked Step by Step
 
@@ -603,4 +603,4 @@ FIX:  NO — every individual detector already caps itself at 1.0
 
 ---
 
-[⬅ Theory](RAGSHIELD_THEORY.md#top) · [⬅ Back to Index](RAGSHIELD_INDEX.md#top) · [Practice ➡](RAGSHIELD_PRACTICE.md#top)
+[⬅ Theory](RAGSHIELD_The_3Rs_THEORY.md#top) · [⬅ Back to Index](RAGSHIELD_The_3Rs_INDEX.md#top) · [Practice ➡](RAGSHIELD_The_3Rs_PRACTICE.md#top)
