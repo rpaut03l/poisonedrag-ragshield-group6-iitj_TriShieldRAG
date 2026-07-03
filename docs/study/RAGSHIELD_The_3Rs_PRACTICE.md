@@ -1,6 +1,6 @@
 <a id="top"></a>
 
-[⬅ Theory](RAGSHIELD_THEORY.md#top) · [⬅ Numericals](RAGSHIELD_NUMERICALS.md#top) · [⬅ Back to Index](RAGSHIELD_INDEX.md#top)
+[⬅ Theory](RAGSHIELD_The_3Rs_THEORY.md#top) · [⬅ Numericals](RAGSHIELD_The_3Rs_NUMERICALS.md#top) · [⬅ Back to Index](RAGSHIELD_The_3Rs_INDEX.md#top)
 
 # 🛠️ RAG-Shield PRACTICE — Run It, Break It, Fix It
 
@@ -298,4 +298,4 @@ If asked about scale/limitations:
 
 ---
 
-[⬅ Theory](RAGSHIELD_THEORY.md#top) · [⬅ Numericals](RAGSHIELD_NUMERICALS.md#top) · [⬅ Back to Index](RAGSHIELD_INDEX.md#top)
+[⬅ Theory](RAGSHIELD_The_3Rs_THEORY.md#top) · [⬅ Numericals](RAGSHIELD_The_3Rs_NUMERICALS.md#top) · [⬅ Back to Index](RAGSHIELD_The_3Rs_INDEX.md#top)
