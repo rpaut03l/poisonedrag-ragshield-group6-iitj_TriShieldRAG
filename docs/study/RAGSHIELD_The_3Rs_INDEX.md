@@ -51,9 +51,9 @@ This INDEX file is the front door. Every other file links back here with a
 
 | File | What it teaches | Read this if... |
 |---|---|---|
-| [`THEORY.md`](RAGSHIELD_THEORY.md) | Concepts, diagrams, why 3 rings, comparison with 6 other papers | You're meeting your professor and need to explain WHY |
-| [`NUMERICALS.md`](RAGSHIELD_NUMERICALS.md) | Every formula in Ring 1/2/3, worked step-by-step with real numbers | You need to derive a score by hand or defend a number in viva |
-| [`PRACTICE.md`](RAGSHIELD_PRACTICE.md) | Commands, setup, troubleshooting, exam-style Q&A | You're about to run the demo or sit the viva |
+| [`THEORY.md`](RAGSHIELD_The_3Rs_THEORY.md) | Concepts, diagrams, why 3 rings, comparison with 6 other papers | You're meeting your professor and need to explain WHY |
+| [`NUMERICALS.md`](RAGSHIELD_The_3Rs_NUMERICALS.md) | Every formula in Ring 1/2/3, worked step-by-step with real numbers | You need to derive a score by hand or defend a number in viva |
+| [`PRACTICE.md`](RAGSHIELD_The_3Rs_PRACTICE.md) | Commands, setup, troubleshooting, exam-style Q&A | You're about to run the demo or sit the viva |
 
 ---
 
@@ -218,8 +218,8 @@ SAD vs GLAD     → how RAG-Shield differs from the 2 attack papers
 - [PoisonedRAG Paper Summary (`docs/paper_summary.md`)](../paper_summary.md)
 
 **Within this study set:**
-- ➡️ Next: [THEORY.md — start here for concepts](RAGSHIELD_THEORY.md#top)
-- ➡️ [NUMERICALS.md — the math, worked step by step](RAGSHIELD_NUMERICALS.md#top)
-- ➡️ [PRACTICE.md — commands, troubleshooting, exam hacks](RAGSHIELD_PRACTICE.md#top)
+- ➡️ Next: [THEORY.md — start here for concepts](RAGSHIELD_The_3Rs_THEORY.md#top)
+- ➡️ [NUMERICALS.md — the math, worked step by step](RAGSHIELD_The_3Rs_NUMERICALS.md#top)
+- ➡️ [PRACTICE.md — commands, troubleshooting, exam hacks](RAGSHIELD_The_3Rs_PRACTICE.md#top)
 
 [⬆ Back to top](#top)
