@@ -1,15 +1,15 @@
 <a id="top"></a>
 
-# 📘 THEORY.md — RAG-Shield Explained
+# 📘 RAGSHIELD_THEORY.md — RAG-Shield Explained
 ### What broke, why it broke, and how we fixed it — the story before the math
 
 ---
 
 ## 🔝 TOP NAVIGATION — Jump to any file
 
-**This file:** THEORY.md (the story) → **Next:** [NUMERICALS.md](NUMERICALS.md) (the math) → **Then:** [PRACTICE.md](PRACTICE.md) (running it)
+**This file:** RAGSHIELD_THEORY.md (the story) → **Next:** [RAGSHIELD_NUMERICALS.md](RAGSHIELD_NUMERICALS.md#top) (the math) → **Then:** [RAGSHIELD_PRACTICE.md](RAGSHIELD_PRACTICE.md#top) (running it)
 
-[🏠 Repo Home](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](PRACTICE.md#top)
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top)
 
 ---
 
@@ -137,9 +137,9 @@ attacker to fool all three at once — much harder.
 
 **File:** `ragshield_core/ring1_ingest.py`
 **Runs:** the moment a document is considered for the knowledge base
-**Full math:** [Numericals, Section D](NUMERICALS.md#d-ring1-math)
+**Full math:** [Numericals, Section D](RAGSHIELD_NUMERICALS.md#d-ring1-math)
 
-Three detectors, kid-explained:
+Three detectors, explained simply:
 
 ```
 1. PerplexityDetector = "Is this text weirdly repetitive?"
@@ -166,7 +166,7 @@ Three detectors, kid-explained:
 
 **File:** `ragshield_core/ring2_retrieval.py`
 **Runs:** right after the top-5 documents are retrieved
-**Full math:** [Numericals, Section E](NUMERICALS.md#e-ring2-math)
+**Full math:** [Numericals, Section E](RAGSHIELD_NUMERICALS.md#e-ring2-math)
 
 ```
 Ingredient 1 — Provenance = "Where did this doc come from?"
@@ -191,7 +191,7 @@ Ingredient 3 — Retrieval score = "How well did this match the
 
 **File:** `ragshield_core/ring3_consensus.py`
 **Runs:** right before the final answer is shown to the user
-**Full math:** [Numericals, Section F](NUMERICALS.md#f-ring3-math)
+**Full math:** [Numericals, Section F](RAGSHIELD_NUMERICALS.md#f-ring3-math)
 
 ```
      Claude          Mistral Small        LLaMA 3.2
@@ -203,7 +203,7 @@ Ingredient 3 — Retrieval score = "How well did this match the
                           │
               ┌───────────┴─────────────┐
              YES                        NO
-              │                         │
+              │                          │
        accept the answer          drop weakest doc,
                                    ask ONE more time
 ```
@@ -313,12 +313,12 @@ comparisons per query and ~8GB of RAM just for the vectors.
 ```
 FIX: swap to IndexIVFFlat (approximate search)
 
-Kid version: instead of walking past all 2.6 million library books
-one by one, first sort them into 4,096 labeled bins by topic. When
-a question comes in, only check the ~32 bins most likely to have
-the answer. Much faster. Tiny chance you miss a book in a bin you
-didn't check — that trade-off is called "approximate search" and
-it's completely standard practice at this scale.
+Simple version: instead of walking past all 2.6 million library
+books one by one, first sort them into 4,096 labeled bins by topic.
+When a question comes in, only check the ~32 bins most likely to
+have the answer. Much faster. Tiny chance you miss a book in a bin
+you didn't check — that trade-off is called "approximate search"
+and it's completely standard practice at this scale.
 ```
 
 **One sentence for anyone who asks:**
@@ -407,8 +407,8 @@ SAFE: "No — Ring 1/2/3 formulas operate on the retrieved top-K set
 
 ## 🔚 BOTTOM NAVIGATION — Jump to any file
 
-**This file:** THEORY.md (the story) → **Next:** [NUMERICALS.md](NUMERICALS.md#top) (the math) → **Then:** [PRACTICE.md](PRACTICE.md#top) (running it)
+**This file:** RAGSHIELD_THEORY.md (the story) → **Next:** [RAGSHIELD_NUMERICALS.md](RAGSHIELD_NUMERICALS.md#top) (the math) → **Then:** [RAGSHIELD_PRACTICE.md](RAGSHIELD_PRACTICE.md#top) (running it)
 
-[🏠 Repo Home](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](PRACTICE.md#top)
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top)
 
 [⬆ Back to top](#top)
