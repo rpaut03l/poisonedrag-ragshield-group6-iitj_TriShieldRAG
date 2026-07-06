@@ -2,7 +2,7 @@
 
 # 🎓 RAG-Shield MATH PRIMER
 ### For the Author — "I Know Nothing About Math" Starting Point
-### Every concept taught from zero, then applied to OUR actual code
+### Every concept taught from zero, then applied to My actual code
 
 ---
 
