@@ -186,6 +186,29 @@ FIX:   This means your script has "new-style" type hints like
          def my_func(x: int | None):
        This works on EVERY Python version, old or new.
 
+ERROR: "RuntimeError: ... 'nx >= static_cast<idx_t>(k)' failed:
+        Number of training points (500) should be at least as
+        large as number of clusters (4096)"
+FIX:   This means nlist (number of clusters) is LARGER than how
+       many vectors you actually have. FAISS needs at least
+       nlist vectors to train that many clusters — you can't sort
+       500 books into 4096 labeled bins, there aren't enough books.
+
+       Rule of thumb: nlist ≈ 4 × sqrt(number_of_vectors),
+       capped at vectors/4 so you never exceed what you have.
+
+       Fixed code:
+         import math
+         n = vectors.shape[0]
+         nlist = max(1, min(int(4 * math.sqrt(n)), n // 4, n))
+         index = faiss.IndexIVFFlat(quantizer, d, nlist,
+                                     faiss.METRIC_INNER_PRODUCT)
+         index.train(vectors[:n])
+
+       This scales automatically: n=500 → nlist=89 (safe),
+       n=2.6M → nlist≈6449 (well-tuned for that size). Never
+       hardcode nlist=4096 when testing on small --limit slices.
+
 ERROR: "[DOWN] Claude -> No module named 'typing_extensions'"
 FIX:   .venv/bin/python3.11 -m pip install typing_extensions
        If still failing, nuclear rebuild above.
@@ -263,16 +286,24 @@ pip install datasets
     --dataset nq --batch-size 256 --device mps
 
 # Step 3 — build an approximate index instead of exact search
+# IMPORTANT: nlist must scale with your vector count. FAISS needs
+# at least nlist vectors to train that many clusters — hardcoding
+# nlist=4096 will CRASH on small test runs (e.g. --limit 500).
 .venv/bin/python3.11 -c "
-import faiss, numpy as np
+import faiss, numpy as np, math
 d = 768
 vectors = np.load('embeddings/nq_embeddings.npy')
+n = vectors.shape[0]
+
+# safe formula: ~4*sqrt(n), capped so it never exceeds what you have
+nlist = max(1, min(int(4 * math.sqrt(n)), n // 4, n))
+print(f'n={n} vectors -> nlist={nlist}')
+
 quantizer = faiss.IndexFlatIP(d)
-nlist = 4096
 index = faiss.IndexIVFFlat(quantizer, d, nlist, faiss.METRIC_INNER_PRODUCT)
-index.train(vectors[:200000])   # train on a representative sample
+index.train(vectors[:n])        # train on what you actually have
 index.add(vectors)
-index.nprobe = 32               # tune: higher = more accurate but slower
+index.nprobe = max(1, nlist // 16)   # search ~6% of clusters
 faiss.write_index(index, 'ragshield_2m.index')
 print('Index built:', index.ntotal, 'vectors')
 "
