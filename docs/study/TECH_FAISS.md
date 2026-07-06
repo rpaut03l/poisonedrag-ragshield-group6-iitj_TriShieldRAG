@@ -2,7 +2,7 @@
 
 # 🔍 TECH GUIDE — FAISS
 ### The Library That Finds "Similar" Things Fast
-### Explained for a Kid, Useful for the Author
+### Explained & Useful for the Author
 
 ---
 
