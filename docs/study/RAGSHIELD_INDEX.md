@@ -12,8 +12,8 @@
 |        +---------------------+---------------------+        |
 |        |                     |                     |        |
 |   THEORY.md            NUMERICALS.md          PRACTICE.md   |
-|  (what & why)          (the math, worked)   (run it, break  |
-|                                               it, fix it)   |
+|  (what & why)          (the math, worked)    (run it, break |
+|                                                it, fix it)  |
 +-------------------------------------------------------------+
 ```
 
@@ -27,6 +27,7 @@
 - [Reading order — kid-simple version](#reading-order)
 - [The one-page cheat sheet](#one-page-cheat-sheet)
 - [Mnemonics master list](#mnemonics-master-list)
+- [Tech Stack Deep-Dive Guides](#tech-stack-guides)
 - [Links to other docs in this repo](#links-to-other-docs)
 
 ---
@@ -51,9 +52,9 @@ This INDEX file is the front door. Every other file links back here with a
 
 | File | What it teaches | Read this if... |
 |---|---|---|
-| [`THEORY.md`](RAGSHIELD_The_3Rs_THEORY.md) | Concepts, diagrams, why 3 rings, comparison with 6 other papers | You're meeting your professor and need to explain WHY |
-| [`NUMERICALS.md`](RAGSHIELD_The_3Rs_NUMERICALS.md) | Every formula in Ring 1/2/3, worked step-by-step with real numbers | You need to derive a score by hand or defend a number in viva |
-| [`PRACTICE.md`](RAGSHIELD_The_3Rs_PRACTICE.md) | Commands, setup, troubleshooting, exam-style Q&A | You're about to run the demo or sit the viva |
+| [`THEORY.md`](RAGSHIELD_THEORY.md) | Concepts, diagrams, why 3 rings, comparison with 6 other papers | You're meeting your professor and need to explain WHY |
+| [`NUMERICALS.md`](RAGSHIELD_NUMERICALS.md) | Every formula in Ring 1/2/3, worked step-by-step with real numbers | You need to derive a score by hand or defend a number in viva |
+| [`PRACTICE.md`](RAGSHIELD_PRACTICE.md) | Commands, setup, troubleshooting, exam-style Q&A | You're about to run the demo or sit the viva |
 
 ---
 
@@ -146,32 +147,32 @@ the bottom of PRACTICE.md.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ RAG-SHIELD — the whole idea in one box                          │
+│  RAG-SHIELD — the whole idea in one box                         │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│ PROBLEM: PoisonedRAG attack — 5 fake docs hijack an LLM's       │
-│          answer, 91% of the time                                │
+│  PROBLEM: PoisonedRAG attack — 5 fake docs hijack an LLM's      │
+│           answer, 91% of the time                               │
 │                                                                 │
-│ FIX: three independent checkpoints ("rings") that the           │
-│      poison must beat ALL THREE of to succeed                   │
+│  FIX: three independent checkpoints ("rings") that the          │
+│       poison must beat ALL THREE of to succeed                  │
 │                                                                 │
-│ RING 1 (Ingest Guard)     — checks docs BEFORE they're stored   │
-│   formula: combined = max(p, pa, 0.7·o + 0.3·max(p,pa))         │
-│   block if combined ≥ 0.5                                       │
+│  RING 1 (Ingest Guard)     — checks docs BEFORE they're stored  │
+│    formula: combined = max(p, pa, 0.7·o + 0.3·max(p,pa))        │
+│    block if combined ≥ 0.5                                      │
 │                                                                 │
-│RING 2 (Retrieval Scorer) — checks docs AFTER retrieval          │
-│  formula: trust = 0.45·provenance + 0.35·consistency            │
-│                  + 0.20·retrieval_score                         │
-│  drop if trust < 0.35                                           │
+│  RING 2 (Retrieval Scorer) — checks docs AFTER retrieval        │
+│    formula: trust = 0.45·provenance + 0.35·consistency          │
+│                    + 0.20·retrieval_score                       │
+│    drop if trust < 0.35                                         │
 │                                                                 │
-│RING 3 (Cross-LLM Consensus) — checks the ANSWER itself          │
-│   formula: frac = agree_n / panel_size                          │
-│   accept if frac ≥ 0.66 (two-thirds majority)                   │
+│  RING 3 (Cross-LLM Consensus) — checks the ANSWER itself        │
+│    formula: frac = agree_n / panel_size                         │
+│    accept if frac ≥ 0.66 (two-thirds majority)                  │
 │                                                                 │
-│RESULT: 91% attack success  →  0-13% attack success              │
+│  RESULT: 91% attack success  →  0-13% attack success            │
 │                                                                 │
-│STACK: FAISS + sentence-transformers + Streamlit +               │
-│      Claude + Mistral Small + LLaMA 3.2 (Ollama)                │
+│  STACK: FAISS + sentence-transformers + Streamlit +             │
+│         Claude + Mistral Small + LLaMA 3.2 (Ollama)             │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -208,6 +209,24 @@ SAD vs GLAD     → how RAG-Shield differs from the 2 attack papers
 
 ---
 
+<a id="tech-stack-guides"></a>
+## 🔧 Tech Stack Deep-Dive Guides
+
+Beyond the RAG-Shield defense logic itself, these guides explain
+every underlying technology from zero — same kid-simple style,
+same mnemonics/cheatsheet/exam-hacks structure:
+
+| Guide | Explains |
+|---|---|
+| [`TECH_FAISS.md`](TECH_FAISS.md) | How FAISS finds "similar" documents fast, IndexFlatIP vs IndexIVFFlat |
+| [`TECH_SENTENCE_TRANSFORMERS.md`](TECH_SENTENCE_TRANSFORMERS.md) | How all-mpnet-base-v2 turns sentences into 768-number vectors |
+| [`TECH_STREAMLIT.md`](TECH_STREAMLIT.md) | How our 5-page demo app works, caching, reruns |
+| [`TECH_LLM_APIS.md`](TECH_LLM_APIS.md) | How we talk to Claude, Mistral, and local LLaMA — black-box vs white-box |
+
+[⬆ Back to top](#top)
+
+---
+
 <a id="links-to-other-docs"></a>
 ## 🔗 Links to Other Docs in This Repo
 
@@ -218,8 +237,8 @@ SAD vs GLAD     → how RAG-Shield differs from the 2 attack papers
 - [PoisonedRAG Paper Summary (`docs/paper_summary.md`)](../paper_summary.md)
 
 **Within this study set:**
-- ➡️ Next: [THEORY.md — start here for concepts](RAGSHIELD_The_3Rs_THEORY.md#top)
-- ➡️ [NUMERICALS.md — the math, worked step by step](RAGSHIELD_The_3Rs_NUMERICALS.md#top)
-- ➡️ [PRACTICE.md — commands, troubleshooting, exam hacks](RAGSHIELD_The_3Rs_PRACTICE.md#top)
+- ➡️ Next: [THEORY.md — start here for concepts](RAGSHIELD_THEORY.md#top)
+- ➡️ [NUMERICALS.md — the math, worked step by step](RAGSHIELD_NUMERICALS.md#top)
+- ➡️ [PRACTICE.md — commands, troubleshooting, exam hacks](RAGSHIELD_PRACTICE.md#top)
 
 [⬆ Back to top](#top)
