@@ -9,7 +9,7 @@
 
 **This file:** RAGSHIELD_THEORY.md (the story) → **Next:** [RAGSHIELD_NUMERICALS.md](RAGSHIELD_NUMERICALS.md#top) (the math) → **Then:** [RAGSHIELD_PRACTICE.md](RAGSHIELD_PRACTICE.md#top) (running it)
 
-[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top)
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top) &nbsp;·&nbsp; [🔍 FAISS Deep-Dive](RAGSHIELD_FAISS.md#top)
 
 ---
 
@@ -201,7 +201,7 @@ Ingredient 3 — Retrieval score = "How well did this match the
                           ▼
               Do at least 2 out of 3 agree?
                           │
-              ┌───────────┴─────────────┐
+              ┌───────────┴──────────────┐
              YES                        NO
               │                          │
        accept the answer          drop weakest doc,
@@ -409,6 +409,6 @@ SAFE: "No — Ring 1/2/3 formulas operate on the retrieved top-K set
 
 **This file:** RAGSHIELD_THEORY.md (the story) → **Next:** [RAGSHIELD_NUMERICALS.md](RAGSHIELD_NUMERICALS.md#top) (the math) → **Then:** [RAGSHIELD_PRACTICE.md](RAGSHIELD_PRACTICE.md#top) (running it)
 
-[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top)
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top) &nbsp;·&nbsp; [🔍 FAISS Deep-Dive](RAGSHIELD_FAISS.md#top)
 
 [⬆ Back to top](#top)
