@@ -1,17 +1,26 @@
 <a id="top"></a>
 
-# 🛠️ RAG-Shield PRACTICE
-### Run it, break it, fix it — plus viva-style practice questions
+# 🛠️ RAGSHIELD_PRACTICE.md — Run It, Break It, Fix It
+### Commands, troubleshooting, and viva-style practice questions
 
 ---
 
-## 🔝 Top Navigation
+## 🔝 TOP NAVIGATION — Jump to any file
 
-[⬅ Repo Home](../../README.md) · [Docs Index](../README.md) · [🏠 Study Index](RAGSHIELD_INDEX.md) · [🎓 Math Primer](RAGSHIELD_MATH_PRIMER.md) · [📘 Theory](RAGSHIELD_THEORY.md) · [🧮 Numericals](RAGSHIELD_NUMERICALS.md)
+**Previous:** [RAGSHIELD_THEORY.md](RAGSHIELD_THEORY.md#top) (the story) → [RAGSHIELD_NUMERICALS.md](RAGSHIELD_NUMERICALS.md#top) (the math) → **This file:** RAGSHIELD_PRACTICE.md (running it)
+
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice (you are here)](#top)
 
 ---
 
-## 📌 Table of Contents
+## 📌 TABLE OF CONTENTS
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  THEORY.md  →  NUMERICALS.md  →  PRACTICE.md (you are   │
+│  (the story)   (the math)        here — the doing)      │
+└─────────────────────────────────────────────────────────┘
+```
 
 - [A. First-Time Setup](#a-setup)
 - [B. Daily Startup Commands](#b-startup)
@@ -49,6 +58,25 @@ cp .env.example .env
 # Download from https://ollama.com
 ollama pull llama3.2:3b
 ollama serve &
+```
+
+**Which `python3` are you actually using? Check this if anything
+behaves strangely:**
+
+```bash
+which python3
+python3 --version
+```
+
+If you have MULTIPLE Pythons installed (very common on Mac — one
+from Apple's Command Line Tools, maybe another from Homebrew, maybe
+another from python.org), always prefer running scripts through
+your **virtual environment's** Python directly, to avoid confusing
+version mismatches:
+
+```bash
+.venv/bin/python3.11 build_embeddings.py --dataset nq --device cpu --limit 5000
+# instead of just "python3 build_embeddings.py ..."
 ```
 
 [⬆ Back to top](#top)
@@ -146,6 +174,18 @@ FIX:   .venv/bin/python3.11 -m pip install X
          .venv/bin/python3.11 -m pip install --upgrade pip
          .venv/bin/python3.11 -m pip install -r requirements.txt
 
+ERROR: "TypeError: unsupported operand type(s) for |: 'type' and
+        'NoneType'"
+FIX:   This means your script has "new-style" type hints like
+       `int | None`, which only work on Python 3.10+. Your system's
+       python3 is older (common with Apple's built-in or Homebrew
+       Python 3.9). Fix the script to use:
+         from typing import Optional
+         def my_func(x: Optional[int]):
+       instead of:
+         def my_func(x: int | None):
+       This works on EVERY Python version, old or new.
+
 ERROR: "[DOWN] Claude -> No module named 'typing_extensions'"
 FIX:   .venv/bin/python3.11 -m pip install typing_extensions
        If still failing, nuclear rebuild above.
@@ -168,6 +208,22 @@ FIX:   ollama serve &  → wait 5s → re-run backends_status.py
 ERROR: Streamlit shows stale data
 FIX:   Cmd+R (or Ctrl+R) in browser — clears cache in 2-3 seconds
 
+ERROR: "NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+"
+FIX:   This is just a WARNING, not an error — safe to ignore. It
+       means your Python's built-in SSL library is older than what
+       urllib3 v2 prefers. The script will still run correctly.
+       If you want to silence it permanently:
+         .venv/bin/python3.11 -m pip install 'urllib3<2'
+
+ERROR: script seems "stuck" after printing setup info, no crash,
+       just no more output for a while (e.g. a lock/mutex message)
+FIX:   This is often just the embedding model loading or a native
+       library (PyTorch/tokenizers) doing internal setup — NOT
+       necessarily broken. Wait 1-2 minutes. If truly stuck longer
+       than 5 minutes with zero CPU/GPU activity (check Activity
+       Monitor), Ctrl+C and retry with a smaller --limit or with
+       --device cpu instead of --device mps.
+
 FALLBACK: everything broken, demo in 10 minutes
 FIX:   DEMO_MODE=1 .venv/bin/python3.11 -m streamlit run frontend/app.py
        Zero API keys, instant startup, same logic, mock LLMs
@@ -180,35 +236,45 @@ FIX:   DEMO_MODE=1 .venv/bin/python3.11 -m streamlit run frontend/app.py
 <a id="e-scaling-steps"></a>
 ## E. Scaling to 2 Million Docs — Practical Steps
 
-**The math doesn't change (see Numericals Section H) — only the
-infrastructure around retrieval does. Here's the practical checklist:**
+**The math doesn't change (see [Numericals Section H](RAGSHIELD_NUMERICALS.md#h-scaling-math))
+— only the infrastructure around retrieval does. Here's the
+practical checklist:**
 
 ```bash
 # Step 1 — get the Natural Questions corpus
 pip install datasets
-python3 -c "
-from datasets import load_dataset
-ds = load_dataset('natural_questions', split='train')
-print(len(ds))   # ~2.6M passages after processing
-"
 
-# Step 2 — embed all documents (budget time — this is the slow part)
-#   GPU:  ~45 minutes for 2.6M docs
-#   CPU:  ~14 hours — strongly prefer GPU or an overnight batch job
-python3 build_embeddings.py --dataset nq --batch-size 256 --device cuda
+# Step 2 — embed documents. Use build_embeddings.py in the repo root.
+# IMPORTANT for Mac users:
+#   --device cuda is for NVIDIA GPUs ONLY — it will not work on a Mac.
+#   Use --device mps (Apple Silicon GPU) or --device cpu instead.
+#
+# ALWAYS test with a small --limit first before committing to the
+# full multi-hour run:
+.venv/bin/python3.11 build_embeddings.py \
+    --dataset nq --batch-size 256 --device mps --limit 5000
+
+# if that works cleanly, scale up gradually:
+.venv/bin/python3.11 build_embeddings.py \
+    --dataset nq --batch-size 256 --device mps --limit 100000
+
+# only once THAT works, run the full corpus (budget several hours):
+.venv/bin/python3.11 build_embeddings.py \
+    --dataset nq --batch-size 256 --device mps
 
 # Step 3 — build an approximate index instead of exact search
-python3 -c "
-import faiss
+.venv/bin/python3.11 -c "
+import faiss, numpy as np
 d = 768
+vectors = np.load('embeddings/nq_embeddings.npy')
 quantizer = faiss.IndexFlatIP(d)
 nlist = 4096
 index = faiss.IndexIVFFlat(quantizer, d, nlist, faiss.METRIC_INNER_PRODUCT)
-# train on a representative sample first (100-500K vectors)
-index.train(sample_vectors)
-index.add(all_vectors)
-index.nprobe = 32   # tune: higher = more accurate but slower
+index.train(vectors[:200000])   # train on a representative sample
+index.add(vectors)
+index.nprobe = 32               # tune: higher = more accurate but slower
 faiss.write_index(index, 'ragshield_2m.index')
+print('Index built:', index.ntotal, 'vectors')
 "
 
 # Step 4 — re-run the SAME evaluation harness (no code changes needed
@@ -222,8 +288,8 @@ DEMO_MODE=0 .venv/bin/python3.11 -m frontend.pages.5_Results_Dashboard
 ☐ Recall check: does IndexIVFFlat still find the SAME top-5 docs
   as IndexFlatIP would, for a sample of test queries? (small
   recall loss is expected and fine — big loss means nprobe is too low)
-☐ Memory usage during index.add() — monitor with `htop` or Activity
-  Monitor, should stabilize around 8-10GB for 2.6M × 768-dim vectors
+☐ Memory usage during index.add() — monitor with Activity Monitor,
+  should stabilize around 8-10GB for 2.6M × 768-dim vectors
 ☐ Query latency — should stay under ~100ms even at 2.6M scale with
   a well-tuned nprobe
 ```
@@ -302,6 +368,10 @@ BAPS            → Black-box, All-3-stages, Pipeline, Scalable
 
 "same math,     → the scaling answer in 4 words:
  bigger index"     formulas unchanged, only FAISS index type changes
+
+"venv python    → always run scripts through .venv/bin/python3.11,
+ not system      never bare "python3" — avoids version-mismatch
+ python"          errors like int|None syntax failures
 ```
 
 [⬆ Back to top](#top)
@@ -321,6 +391,9 @@ bash tail_logs.sh
 
 # Instant fallback if anything breaks:
 DEMO_MODE=1 .venv/bin/python3.11 -m streamlit run frontend/app.py
+
+# Scaling test run (always start small):
+.venv/bin/python3.11 build_embeddings.py --dataset nq --device cpu --limit 5000
 ```
 
 [⬆ Back to top](#top)
@@ -358,8 +431,10 @@ If asked about current limitations:
 
 ---
 
-## 🔚 Bottom Navigation
+## 🔚 BOTTOM NAVIGATION — Jump to any file
 
-[⬅ Repo Home](../../README.md) · [Docs Index](../README.md) · [🏠 Study Index](RAGSHIELD_INDEX.md) · [🎓 Math Primer](RAGSHIELD_MATH_PRIMER.md) · [📘 Theory ➡](RAGSHIELD_THEORY.md) · [🧮 Numericals ➡](RAGSHIELD_NUMERICALS.md)
+**Previous:** [RAGSHIELD_THEORY.md](RAGSHIELD_THEORY.md#top) (the story) → [RAGSHIELD_NUMERICALS.md](RAGSHIELD_NUMERICALS.md#top) (the math) → **This file:** RAGSHIELD_PRACTICE.md (running it)
+
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice (you are here)](#top)
 
 [⬆ Back to top](#top)
