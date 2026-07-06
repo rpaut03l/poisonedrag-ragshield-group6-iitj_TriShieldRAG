@@ -9,7 +9,7 @@
 
 **This file:** RAGSHIELD_THEORY.md (the story) → **Next:** [RAGSHIELD_NUMERICALS.md](RAGSHIELD_NUMERICALS.md#top) (the math) → **Then:** [RAGSHIELD_PRACTICE.md](RAGSHIELD_PRACTICE.md#top) (running it)
 
-[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top) &nbsp;·&nbsp; [🔍 FAISS Deep-Dive](RAGSHIELD_FAISS.md#top)
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top)
 
 ---
 
@@ -23,9 +23,10 @@
 - [F. Ring 3 — Cross-LLM Consensus (the jury)](#f-ring3)
 - [G. How We Compare to Other Research](#g-compare)
 - [H. Does This Work at 2 Million Documents?](#h-scale)
-- [I. Mnemonics — Memory Tricks](#i-mnemonics)
-- [J. Cheatsheet](#j-cheatsheet)
-- [K. Exam Hacks](#k-exam-hacks)
+- [I. The Three DEMO_MODE Flags — One Concept, Three Speeds](#i-three-modes)
+- [J. Mnemonics — Memory Tricks](#j-mnemonics)
+- [K. Cheatsheet](#k-cheatsheet)
+- [L. Exam Hacks](#l-exam-hacks)
 
 ---
 
@@ -201,9 +202,9 @@ Ingredient 3 — Retrieval score = "How well did this match the
                           ▼
               Do at least 2 out of 3 agree?
                           │
-              ┌───────────┴──────────────┐
-             YES                        NO
-              │                          │
+              ┌───────────┴───────────────┐
+             YES                          NO
+              │                           │
        accept the answer          drop weakest doc,
                                    ask ONE more time
 ```
@@ -331,8 +332,84 @@ and it's completely standard practice at this scale.
 
 ---
 
-<a id="i-mnemonics"></a>
-## I. Mnemonics — Memory Tricks
+<a id="i-three-modes"></a>
+## I. The Three DEMO_MODE Flags — One Concept, Three Speeds
+
+RAG-Shield can run in THREE different modes, all controlled by ONE
+environment variable: `DEMO_MODE`. Think of it like a car with
+three gears — same car, same engine, different speed for different
+situations.
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│  DEMO_MODE=1  (default — "first gear")                             │
+│  Small built-in KB (12 clean docs, 5 questions)                    │
+│  Fake/mock LLM answers — no internet, no API keys needed           │
+│  Use for: instant testing, no setup, showing the CONCEPT quickly   │
+├────────────────────────────────────────────────────────────────────┤
+│  DEMO_MODE=0  ("second gear")                                      │
+│  Same small built-in KB (12 clean docs, 5 questions)               │
+│  REAL LLMs — Claude, Mistral, LLaMA all actually called            │
+│  Use for: your live demo, showing the REAL AI models working       │
+├────────────────────────────────────────────────────────────────────┤
+│  DEMO_MODE=2  ("third gear" — NEW)                                 │
+│  YOUR large dataset (5,000 to 2,600,000 Natural Questions docs)    │
+│  REAL LLMs — same as DEMO_MODE=0                                   │
+│ Use for: testing RAG-Shield actually scales to a real-world corpus │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+### Why a Number, Not Three Separate Variables?
+
+Your app already reads ONE variable everywhere. Making it a single
+number that can be 0, 1, or 2 means every command you already know
+still works exactly the same — you're just extending a dial you
+already have, not learning a whole new system.
+
+### The Golden Rule — What Changes, What Doesn't
+
+```
+DIFFERENT between modes:
+  - which documents get loaded (small demo KB vs your big dataset)
+  - whether LLM calls are real or fake
+
+IDENTICAL between all three modes:
+  - Ring 1's formulas (perplexity, pattern, outlier scoring)
+  - Ring 2's formulas (provenance, consistency, trust)
+  - Ring 3's formulas (candidate matching, agreement fraction)
+
+This is the whole point of "scale-invariant" math from Section H —
+the RINGS don't care which mode loaded the documents. They just see
+"here are 5 retrieved docs" and do their job identically every time.
+```
+
+### Quick Reference Table
+
+```
+┌─────────────┬────────────────────┬──────────────┬───────────────────────┐
+│ Flag        │ Documents          │ LLMs         │ Typical use           │
+├─────────────┼────────────────────┼──────────────┼───────────────────────┤
+│ DEMO_MODE=1 │ 12 built-in docs   │ Mock/fake    │ Quick local test,     │
+│ (default)   │                    │              │ no API keys needed    │
+├─────────────┼────────────────────┼──────────────┼───────────────────────┤
+│ DEMO_MODE=0 │ 12 built-in docs   │ Real (Claude,│ Live demo/viva —      │
+│             │                    │ Mistral,     │ shows real AI working │
+│             │                    │ LLaMA)       │                       │
+├─────────────┼────────────────────┼──────────────┼───────────────────────┤
+│ DEMO_MODE=2 │ YOUR large dataset │ Real (same as│ Proving RAG-Shield    │
+│ (NEW)       │ (5K–2.6M docs)     │ mode 0)      │ works at real scale   │
+└─────────────┴────────────────────┴──────────────┴───────────────────────┘
+```
+
+Full setup steps for every mode are in
+[RAGSHIELD_PRACTICE.md, Section E](RAGSHIELD_PRACTICE.md#e-scaling-steps).
+
+[⬆ Back to top](#top)
+
+---
+
+<a id="j-mnemonics"></a>
+## J. Mnemonics — Memory Tricks
 
 ```
 I-R-C          → Ingest, Retrieval, Consensus (the 3 rings, in order)
@@ -350,14 +427,20 @@ SAD vs GLAD    → how we differ from the 2 pure-attack papers
                  Demo-scale
                  We make it GLAD: Generation-covered / Layered /
                  Actually-runnable / Defense-built
+
+0-1-2 = GEARS  → the three DEMO_MODE values, easiest way to remember:
+                 1 = small KB + fake LLMs   (first gear, slowest AI cost)
+                 0 = small KB + real LLMs   (second gear, real demo)
+                 2 = BIG KB + real LLMs     (third gear, full scale)
+                "0 and 1 stay small. 2 goes big."
 ```
 
 [⬆ Back to top](#top)
 
 ---
 
-<a id="j-cheatsheet"></a>
-## J. Cheatsheet
+<a id="k-cheatsheet"></a>
+## K. Cheatsheet
 
 ```
 ┌────────────────────────────────────────────────────────────┐
@@ -366,7 +449,7 @@ SAD vs GLAD    → how we differ from the 2 pure-attack papers
 │  1   │ ring1_ingest.py       │ "Is this doc suspicious     │
 │      │                       │  on its own?"               │
 ├────────────────────────────────────────────────────────────┤
-│  2   │ ring2_retrieval.py    │ "Does this doc agree with   │
+│  2   │ ring2_retrieval.py    │ "Does this doc agree wit    │
 │      │                       │  the others retrieved?"     │
 ├────────────────────────────────────────────────────────────┤
 │  3   │ ring3_consensus.py    │ "Do 3 AI models agree on    │
@@ -375,14 +458,19 @@ SAD vs GLAD    → how we differ from the 2 pure-attack papers
 
 SCALING TO 2M DOCS: change ONLY the retrieval index type
   (IndexFlatIP → IndexIVFFlat). Ring 1/2/3 math untouched.
+
+THREE DEMO_MODE FLAGS:
+  DEMO_MODE=1 → small KB, fake LLMs   (default, instant)
+  DEMO_MODE=0 → small KB, real LLMs   (your live demo)
+  DEMO_MODE=2 → big KB,   real LLMs   (scale testing, NEW)
 ```
 
 [⬆ Back to top](#top)
 
 ---
 
-<a id="k-exam-hacks"></a>
-## K. Exam Hacks
+<a id="l-exam-hacks"></a>
+## L. Exam Hacks
 
 ```
 TRAP: "Isn't Stealth Lens basically your Ring 3?"
@@ -399,6 +487,12 @@ TRAP: "Does the math change at 2 million documents?"
 SAFE: "No — Ring 1/2/3 formulas operate on the retrieved top-K set
        or LLM text answers, never the full corpus. Only the FAISS
        index type changes (exact → approximate)."
+
+TRAP: "What's the difference between DEMO_MODE=0 and DEMO_MODE=2?"
+SAFE: "Same real LLMs in both. DEMO_MODE=0 uses the small 12-document
+       built-in KB. DEMO_MODE=2 uses your own large dataset — from
+       5,000 up to 2.6 million documents — to prove the defense
+       actually holds at real-world scale, not just in a toy demo."
 ```
 
 [⬆ Back to top](#top)
@@ -409,6 +503,6 @@ SAFE: "No — Ring 1/2/3 formulas operate on the retrieved top-K set
 
 **This file:** RAGSHIELD_THEORY.md (the story) → **Next:** [RAGSHIELD_NUMERICALS.md](RAGSHIELD_NUMERICALS.md#top) (the math) → **Then:** [RAGSHIELD_PRACTICE.md](RAGSHIELD_PRACTICE.md#top) (running it)
 
-[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top) &nbsp;·&nbsp; [🔍 FAISS Deep-Dive](RAGSHIELD_FAISS.md#top)
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top)
 
 [⬆ Back to top](#top)
