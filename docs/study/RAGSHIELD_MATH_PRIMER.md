@@ -84,7 +84,7 @@ A function is a MACHINE. You put something IN, it gives something OUT.
   "hello world"  --->  count_letters()  --->    10
 
 f(x) = x + 1   means:  "put in x, get out x+1"
-f(5) = 6        means:  "if x is 5, the answer is 6"
+f(5) = 6       means:  "if x is 5, the answer is 6"
 ```
 
 Every formula in this project (`p(t)`, `pa(t)`, `trust(d)`) is just a
