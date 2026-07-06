@@ -9,7 +9,7 @@
 
 **Previous:** [RAGSHIELD_THEORY.md](RAGSHIELD_THEORY.md#top) (the story) → **This file:** RAGSHIELD_NUMERICALS.md (the math) → **Next:** [RAGSHIELD_PRACTICE.md](RAGSHIELD_PRACTICE.md#top) (running it)
 
-[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 Numericals (you are here)](#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top)
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 Numericals (you are here)](#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top) &nbsp;·&nbsp; [🔍 FAISS Deep-Dive](RAGSHIELD_FAISS.md#top)
 
 ---
 
@@ -511,7 +511,7 @@ max() not avg() → Ring 1's rule: "one loud alarm is enough"
 ├──────────────────────────────────────────────────────────────┤
 │ RING 1 — pattern                                             │
 │ s = 0.4[Q-sentence&short] + 0.5[verbatim Q] + 0.3[authority] │
-│   pa = min(1, s)                                             │
+│  pa = min(1, s)                                              │
 ├──────────────────────────────────────────────────────────────┤
 │ RING 1 — outlier                                             │
 │   o = min(1, max(0, 1 - cos(v, centroid)))                   │
@@ -571,6 +571,6 @@ FIX:  NO — ret_score still means "similarity to query," just
 
 **Previous:** [RAGSHIELD_THEORY.md](RAGSHIELD_THEORY.md#top) (the story) → **This file:** RAGSHIELD_NUMERICALS.md (the math) → **Next:** [RAGSHIELD_PRACTICE.md](RAGSHIELD_PRACTICE.md#top) (running it)
 
-[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 Numericals (you are here)](#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top)
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 Numericals (you are here)](#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top) &nbsp;·&nbsp; [🔍 FAISS Deep-Dive](RAGSHIELD_FAISS.md#top)
 
 [⬆ Back to top](#top)
