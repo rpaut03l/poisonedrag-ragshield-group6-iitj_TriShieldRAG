@@ -9,7 +9,7 @@
 
 **Previous:** [RAGSHIELD_THEORY.md](RAGSHIELD_THEORY.md#top) (the story) → [RAGSHIELD_NUMERICALS.md](RAGSHIELD_NUMERICALS.md#top) (the math) → **This file:** RAGSHIELD_PRACTICE.md (running it)
 
-[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice (you are here)](#top) &nbsp;·&nbsp; [🔍 FAISS Deep-Dive](RAGSHIELD_FAISS.md#top)
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice (you are here)](#top)
 
 ---
 
@@ -23,13 +23,10 @@
 ```
 
 - [A. First-Time Setup](#a-setup)
-- [B. Daily Startup Commands](#b-startup)
+- [B. The Three DEMO_MODE Flags — Complete Command Reference](#b-three-modes)
 - [C. Reading the App — Page by Page](#c-app-pages)
 - [D. Troubleshooting — Common Errors](#d-troubleshooting)
 - [E. Scaling to 2 Million Docs — Practical Steps](#e-scaling-steps)
-- [E.1 Real Terminal Run — What You'll Actually See](#e1-terminal-walkthrough)
-- [E.2 Line-by-Line — The Safe Index-Building Script](#e2-line-by-line)
-- [E.3 What Comes After Step 4 — Finishing the 2M-Doc Scale-Up](#e3-post-step4)
 - [F. Viva-Style Practice Questions](#f-viva-practice)
 - [G. Mnemonics](#g-mnemonics)
 - [H. Cheatsheet — Commands in One Block](#h-cheatsheet)
@@ -86,27 +83,53 @@ version mismatches:
 
 ---
 
-<a id="b-startup"></a>
-## B. Daily Startup Commands
+<a id="b-three-modes"></a>
+## B. The Three DEMO_MODE Flags — Complete Command Reference
+
+RAG-Shield has THREE modes, all controlled by one environment
+variable. Full conceptual explanation in
+[RAGSHIELD_THEORY.md, Section I](RAGSHIELD_THEORY.md#i-three-modes);
+the exact code logic in
+[RAGSHIELD_NUMERICALS.md, Section I](RAGSHIELD_NUMERICALS.md#i-demo-mode-logic).
+This section is the practical, copy-paste command reference for
+all three.
+
+### B.1 — DEMO_MODE=1 (Default) — Small KB, Fake LLMs
 
 ```bash
-cd poisonedrag-ragshield-group6-iitj
+# Optional pre-flight — even in mock mode, this confirms your real
+# LLM keys ALSO work, in case you want to switch modes later:
+DEMO_MODE=1 .venv/bin/python3.11 backends_status.py
 
-# Check Ollama is running
-ps aux | grep -i ollama
+# No need to even set the flag — this is the default if unset
+.venv/bin/python3.11 -m streamlit run frontend/app.py
 
+# Or explicitly:
+DEMO_MODE=1 .venv/bin/python3.11 -m streamlit run frontend/app.py
+```
+
+**What you get:** the small 12-document built-in KB, mock/fake LLM
+answers (no API calls, no cost, no internet needed). Use this for
+instant local testing of the RING LOGIC itself, without touching
+any real AI models.
+
+### B.2 — DEMO_MODE=0 — Small KB, REAL LLMs (Your Live Demo)
+
+```bash
 # Pre-flight — confirm all 3 LLMs are reachable
 DEMO_MODE=0 .venv/bin/python3.11 backends_status.py
 
-# Start the app (LIVE mode — real LLMs)
+# Start the app
 DEMO_MODE=0 bash run_live.sh
-
-# OR start the app (DEMO mode — instant, mock LLMs, no API keys)
-DEMO_MODE=1 bash run_demo.sh
 
 # Watch the live decision log (separate terminal)
 bash tail_logs.sh
 ```
+
+**What you get:** the SAME small 12-document built-in KB as
+DEMO_MODE=1, but now REAL calls to Claude, Mistral, and LLaMA. This
+is what you run for your actual viva/demo — same questions, real AI
+brains.
 
 **What "good" pre-flight output looks like:**
 
@@ -123,6 +146,241 @@ Ring 3 panel  : 3 vendor(s) active
 
 ✅  Ready for demo.
 ```
+
+### B.3 — DEMO_MODE=2 (NEW) — YOUR Large Dataset, REAL LLMs
+
+```bash
+# Step 1 — build embeddings for your dataset (start SMALL, always)
+.venv/bin/python3.11 build_embeddings.py \
+    --dataset nq --batch-size 256 --device mps --limit 5000
+
+# Step 2 — build the FAISS index from those embeddings
+.venv/bin/python3.11 -c "
+import faiss, numpy as np, math
+d = 768
+vectors = np.load('embeddings/nq_embeddings.npy')
+n = vectors.shape[0]
+nlist = max(1, min(int(4 * math.sqrt(n)), n // 4, n))
+print(f'n={n} vectors -> nlist={nlist}')
+quantizer = faiss.IndexFlatIP(d)
+index = faiss.IndexIVFFlat(quantizer, d, nlist, faiss.METRIC_INNER_PRODUCT)
+index.train(vectors[:n])
+index.add(vectors)
+index.nprobe = max(1, nlist // 16)
+faiss.write_index(index, 'ragshield_2m.index')
+print('Index built:', index.ntotal, 'vectors')
+"
+
+# Step 3 — confirm Scale Mode is actually loading YOUR data
+DEMO_MODE=2 .venv/bin/python3.11 -c "
+from ragshield_core.retriever import Retriever
+r = Retriever().load_kb()
+print(f'Backend: {r.backend}')
+print(f'Documents loaded: {len(r.docs)}')
+"
+# Expected output:
+#   [Scale Mode] Loaded 5000 documents, FAISS index with 5000
+#   vectors from ragshield_2m.index
+#   Backend: scale
+#   Documents loaded: 5000
+
+# Step 3.5 — pre-flight check ALL 3 LLM backends before running
+DEMO_MODE=2 .venv/bin/python3.11 backends_status.py
+# Expected output:
+#   DEMO_MODE=2  ->  SCALE mode: Ring 3 uses LIVE backends against
+#   YOUR large dataset
+#   [LIVE] Claude (Anthropic)          -> 'OK'
+#   [LIVE] Mistral-Small (MistralAI)   -> 'OK'
+#   [LIVE] Ollama (local Meta)         -> 'OK'
+#   Ring 3 vendor diversity: (shown, same as live mode)
+#   ✅  Ready for scale testing. Run: DEMO_MODE=2 bash run_live.sh
+
+# Step 4 — run the full app against your large dataset
+DEMO_MODE=2 bash run_live.sh
+
+# Or run just the evaluation dashboard directly:
+DEMO_MODE=2 .venv/bin/python3.11 -m frontend.pages.5_Results_Dashboard
+```
+
+**What you get:** REAL LLM calls (same as DEMO_MODE=0), but
+retrieving from YOUR large dataset instead of the small built-in
+KB. Use this to prove RAG-Shield's defense holds up at genuine
+scale, not just on 5 toy questions.
+
+### B.4 — Side-by-Side Comparison Table
+
+```
+┌───────────────┬──────────────────────┬─────────────────┬──────────────────────┐
+│ Flag          │ Documents            │ LLMs            │ Command to run       │
+├───────────────┼──────────────────────┼─────────────────┼──────────────────────┤
+│ DEMO_MODE=1   │ 12 built-in docs     │ Mock/fake       │ streamlit run        │
+│ (default)     │                      │                 │ frontend/app.py      │
+├───────────────┼──────────────────────┼─────────────────┼──────────────────────┤
+│ DEMO_MODE=0   │ 12 built-in docs     │ Real (Claude,   │ DEMO_MODE=0 bash     │
+│               │ (5000 docs)          │ Mistral,        │ run_live.sh          │
+│               │                      │ LLaMA)          │                      │
+├───────────────┼──────────────────────┼─────────────────┼──────────────────────┤
+│ DEMO_MODE=2   │ YOUR large dataset   │ Real (same as   │ DEMO_MODE=2 bash     │
+│ (NEW)         │ (5K–2.6M docs)       │ mode 0, CMO)    │ run_live.sh          │
+└───────────────┴──────────────────────┴─────────────────┴──────────────────────┘
+```
+
+**Why DEMO_MODE=2 is completely safe to add:** it's checked FIRST
+in the code, before the demo/live split, and returns a totally
+separate code path (`_load_scale_kb()`) that never touches the
+small built-in KB logic at all. DEMO_MODE=0 and DEMO_MODE=1 run
+through EXACTLY the same code they always have — see
+[RAGSHIELD_NUMERICALS.md, Section I.4](RAGSHIELD_NUMERICALS.md#i-demo-mode-logic)
+for the full proof.
+
+[⬆ Back to top](#top)
+
+---
+
+<a id="b5-env-setup"></a>
+### B.5 — Setting Up SCALE_* Variables in Your `.env` File (IMPORTANT)
+
+**The mistake to avoid:** typing `SCALE_EMBEDDINGS_PATH=...` directly
+into your terminal (as a bare command, without `export`, or even
+with `export`) only sets it for the CURRENT terminal session. The
+moment you close that tab or open a new one, it's gone — Scale Mode
+falls back to defaults, or you get confusing "file not found" errors
+even though you built the files correctly.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  WRONG — vanishes when the terminal closes:                     │
+│    SCALE_EMBEDDINGS_PATH=embeddings/nq_embeddings.npy           │
+│    SCALE_FAISS_INDEX_PATH=ragshield_2m.index                    │
+│                                                                 │
+│  RIGHT — saved permanently, loaded automatically every run:     │
+│    (add these two lines INTO your .env file itself)             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**The fix — add these lines to your actual `.env` file:**
+
+```bash
+vim .env
+# (or use any text editor — nano, VS Code, whatever you prefer)
+
+# Add these lines anywhere in the file:
+SCALE_EMBEDDINGS_PATH=embeddings/nq_embeddings.npy
+SCALE_FAISS_INDEX_PATH=ragshield_2m.index
+```
+
+**Real terminal walkthrough — exactly what this looks like in practice:**
+
+```bash
+➜  Major-Project-PoisonedRAG git:(feat/build_embeddings) ✗ vim .env
+# (opens your .env file — add the two SCALE_* lines, save, quit)
+
+➜  Major-Project-PoisonedRAG git:(feat/build_embeddings) ✗ .venv/bin/python3.11 build_embeddings.py \
+    --dataset nq --batch-size 256 --device mps --limit 100000
+
+============================================================
+  RAG-Shield Embedding Builder
+============================================================
+  Dataset:     nq
+  Batch size:  256
+  Device:      mps
+  Limit:       100000
+  Output:      embeddings/nq_embeddings.npy
+============================================================
+Loading all-mpnet-base-v2 model...
+Warning: You are sending unauthenticated requests to the HF Hub.
+Please set a HF_TOKEN to enable higher rate limits and faster
+downloads.
+Loading weights: 100%|████████████| 199/199 [00:00<00:00, 5699.87it/s]
+Downloading/loading Natural Questions corpus...
+Using the latest cached version of the dataset since
+natural_questions couldn't be found on the Hugging Face Hub
+Found the latest cached dataset configuration 'default'...
+Loading dataset shards: 100%|████████| 235/235 [00:22<00:00, 10.50it/s]
+```
+
+**Reading this output, line by line (same pattern as the smaller
+5,000-doc run explained in
+[Section E](#e-scaling-steps)):**
+
+```
+"Limit: 100000" instead of 5000
+  → you're stepping UP in scale, exactly as recommended:
+    5,000 → 50,000/100,000 → full corpus. Good discipline.
+
+Everything else in this output means the SAME as your earlier
+5,000-doc run — same model loading, same cached dataset lookup,
+same shard loading. The ONLY difference is the bigger --limit
+number, so it will take proportionally longer to finish embedding
+(roughly 20x longer than the 5,000-doc run, since 100,000 is 20x
+more documents).
+```
+
+#### Why This Is Completely Safe With Git — Nothing Gets Overwritten
+
+**Your exact worry — "make sure whenever git pull or push happens
+it doesn't change anything" — has a clean answer: `.env` is already
+protected by `.gitignore`.**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  .gitignore already contains:                                   │
+│      .env                                                       │
+│      .env.*                                                     │
+│                                                                 │
+│  This means:                                                    │
+│    - Your REAL .env file (with real API keys, real paths)       │
+│      NEVER gets committed, pushed, or pulled — git pretends     │
+│      it doesn't exist                                           │
+│    - Only .env.example (a TEMPLATE with fake placeholder        │
+│      values, no real secrets) is tracked in git                 │
+│    - When a teammate pulls your latest code, they get the       │
+│      UPDATED .env.example (showing them which new variables     │
+│      exist), but their OWN .env file — with their own keys      │
+│      and paths — is completely untouched                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Quick verification — confirm your `.env` is protected right now:**
+
+```bash
+git check-ignore -v .env
+# Expected output: .gitignore:9:.env    .env
+# If you see this, your .env is safely ignored by git.
+# If you see NOTHING printed, your .env is NOT ignored —
+# stop and fix your .gitignore before continuing, to avoid
+# accidentally committing your real API keys.
+```
+
+**What DOES get committed (the safe, shared template):**
+
+```bash
+# .env.example — this file has NO real secrets, just placeholder
+# text showing WHICH variables exist and what format they expect.
+# This is the file that goes into git and gets shared with
+# teammates / graders / anyone who clones the repo.
+
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+MISTRAL_API_KEY=your-mistral-key-here
+MISTRAL_MODEL=mistral-small-latest
+OLLAMA_BASE_URL=http://localhost:11434/v1
+OLLAMA_PANEL=llama3.2:3b,phi4-mini:latest
+
+VLLM_BASE_URL=
+VLLM_API_KEY=vllm
+VLLM_MODEL=meta-llama/Meta-Llama-3.1-8B-Instruct
+
+# ---- Scale Mode (DEMO_MODE=2) ----
+SCALE_EMBEDDINGS_PATH=embeddings/nq_embeddings.npy
+SCALE_FAISS_INDEX_PATH=ragshield_2m.index
+SCALE_META_PATH=embeddings/nq_embeddings.meta.json
+```
+
+**One-sentence summary:** editing your real `.env` file to add
+`SCALE_*` variables is completely private and permanent — it never
+touches git at all, so future `git pull`/`git push` commands will
+never overwrite, remove, or even see your local `.env` changes.
 
 [⬆ Back to top](#top)
 
@@ -155,7 +413,9 @@ Page 4 — Forensic Explorer
 Page 5 — Results Dashboard
   Do: click "Run evaluation"
   See: ASR % for No-Defense vs RAG-Shield, all 10 questions
-  Proves: the headline number (91%→0-13%) is real, computed live
+       (or however many questions your active mode's dataset has)
+  Proves: the headline number is real, computed live — works
+          identically whether you're in DEMO_MODE=0 or DEMO_MODE=2
 ```
 
 [⬆ Back to top](#top)
@@ -188,6 +448,98 @@ FIX:   This means your script has "new-style" type hints like
        instead of:
          def my_func(x: int | None):
        This works on EVERY Python version, old or new.
+
+ERROR: DEMO_MODE=0 gives backend "demo" instead of "faiss"
+       (you expected real FAISS search but got the small demo KB)
+FIX:   This was a real bug — retriever_backend()'s fallback line
+       used to default RETRIEVER to "tfidf" (treated as demo-style)
+       instead of "faiss" (real search) when RETRIEVER wasn't set.
+
+       THE FIX (already applied in config.py):
+         # before:
+         return os.getenv("RETRIEVER", "tfidf")
+         # after:
+         return os.getenv("RETRIEVER", "faiss")
+
+       Verify the fix is active:
+         DEMO_MODE=0 .venv/bin/python3.11 -c "
+         from ragshield_core.retriever import Retriever
+         print(Retriever().load_kb().backend)"
+         # should print: faiss
+
+       Full explanation of every line of this fix:
+       see RAGSHIELD_NUMERICALS.md, Section I.4.
+
+       CONFIRMED WORKING — actual verified output, all 3 modes:
+         DEMO_MODE=0 .venv/bin/python3.11 -c "from ragshield_core.retriever import Retriever; print(Retriever().load_kb().backend)"
+         -> faiss
+
+         DEMO_MODE=1 .venv/bin/python3.11 -c "from ragshield_core.retriever import Retriever; print(Retriever().load_kb().backend)"
+         -> demo
+
+         DEMO_MODE=2 .venv/bin/python3.11 -c "from ragshield_core.retriever import Retriever; print(Retriever().load_kb().backend)"
+         -> [Scale Mode] Loaded 5000 documents, FAISS index with 5000 vectors from ragshield_2m.index
+         -> scale
+
+ERROR: backends_status.py always prints "DEMO mode: 3 MOCK LLMs"
+       even under DEMO_MODE=2, even though it's actually pinging
+       REAL Claude/Mistral/Ollama and getting [LIVE] for all three
+FIX:   This was a SECOND, SEPARATE bug from the retriever one above.
+       backends_status.py had its OWN hardcoded copy of the mode
+       check, written BEFORE DEMO_MODE=2 existed:
+
+         # OLD, buggy line (only knew about 2 modes):
+         demo = os.getenv("DEMO_MODE", "1") not in ("0", "false", "False")
+         # DEMO_MODE=2 falls into the "not in" list -> demo=True
+         # -> wrongly prints "DEMO mode: 3 MOCK LLMs"
+         # even though it just successfully pinged 3 REAL backends
+
+       THE FIX: import the SAME functions the rest of the app
+       already uses, instead of recalculating locally:
+         from ragshield_core import config
+         is_demo  = config.demo_mode()
+         is_scale = config.scale_mode()
+         is_live  = (not is_demo) and (not is_scale)
+
+       This guarantees backends_status.py can NEVER drift out of
+       sync with config.py again — there is only ONE place that
+       decides what each DEMO_MODE value means.
+
+       CONFIRMED WORKING — actual verified output, all 3 modes:
+
+         DEMO_MODE=1 .venv/bin/python3.11 backends_status.py
+         -> DEMO_MODE=1  ->  DEMO mode: Ring 3 uses 3 MOCK LLMs (no network)
+         -> [LIVE] Claude / Mistral / Ollama all OK
+         -> Live backends : ['Claude', 'Mistral', 'LLaMA']
+         -> Ring 3 panel  : 3 vendor(s) active
+
+         DEMO_MODE=0 .venv/bin/python3.11 backends_status.py
+         -> DEMO_MODE=0  ->  LIVE mode: Ring 3 uses the live backends below
+         -> [LIVE] Claude / Mistral / Ollama all OK
+         -> Ring 3 vendor diversity: Claude->Anthropic, Mistral->Mistral AI,
+            LLaMA->Meta
+         -> ✅ Ready for demo. Run: DEMO_MODE=0 bash run_live.sh
+
+         DEMO_MODE=2 .venv/bin/python3.11 backends_status.py — FULL
+         REAL OUTPUT (exactly as it appears on your terminal):
+
+           DEMO_MODE=2  ->  SCALE mode: Ring 3 uses LIVE backends against YOUR large dataset
+           Pinging backends:
+             [LIVE] Claude (Anthropic)     -> 'OK'  (1120 ms)
+             [LIVE] Mistral-Small (MistralAI) -> 'OK'  (588 ms)
+             [LIVE] Ollama (local Meta)    -> 'ok'  (540 ms)
+           Live backends : ['Claude', 'Mistral', 'LLaMA']
+           Ring 3 panel  : 3 vendor(s) active
+           Ring 3 vendor diversity:
+             Claude   -> Anthropic  (US, Constitutional AI)
+             Mistral  -> Mistral AI (France, EU-trained)
+             LLaMA    -> Meta       (US, open-weight, local)
+           ✅  Ready for scale testing. Run: DEMO_MODE=2 bash run_live.sh
+
+         Banner correctly says "SCALE mode" now (was wrongly "DEMO
+         mode" before the fix) — this is the confirmed, working,
+         fixed behaviour running on a real machine, real API keys,
+         real Ollama.
 
 ERROR: "RuntimeError: ... 'nx >= static_cast<idx_t>(k)' failed:
         Number of training points (500) should be at least as
@@ -235,11 +587,23 @@ ERROR: Streamlit shows stale data
 FIX:   Cmd+R (or Ctrl+R) in browser — clears cache in 2-3 seconds
 
 ERROR: "NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+"
-FIX:   This is just a WARNING, not an error — safe to ignore. It
-       means your Python's built-in SSL library is older than what
-       urllib3 v2 prefers. The script will still run correctly.
-       If you want to silence it permanently:
-         .venv/bin/python3.11 -m pip install 'urllib3<2'
+FIX:   This is just a WARNING, not an error — safe to ignore.
+
+ERROR: DEMO_MODE=2 raises "FileNotFoundError: DEMO_MODE=2 (Scale
+        Mode) requires two files that don't exist yet"
+FIX:   You haven't built the embeddings/index files yet. Follow
+       Section B.3 above, Steps 1-2, before trying Step 3 or 4.
+
+ERROR: process gets "killed" partway through embedding a huge
+       dataset (e.g. running WITHOUT --limit on the full 2.6M docs)
+FIX:   Your machine likely ran out of memory holding that many
+       documents at once. ALWAYS test with --limit first:
+         --limit 5000    (few minutes)
+         --limit 50000   (tens of minutes)
+         --limit 500000  (a few hours)
+         (no --limit)    (full 2.6M — only after the above all
+                          worked, budget most of a day, or run
+                          overnight)
 
 ERROR: script seems "stuck" after printing setup info, no crash,
        just no more output for a while (e.g. a lock/mutex message)
@@ -263,20 +627,13 @@ FIX:   DEMO_MODE=1 .venv/bin/python3.11 -m streamlit run frontend/app.py
 ## E. Scaling to 2 Million Docs — Practical Steps
 
 **The math doesn't change (see [Numericals Section H](RAGSHIELD_NUMERICALS.md#h-scaling-math))
-— only the infrastructure around retrieval does. Here's the
-practical checklist:**
+— only the infrastructure around retrieval does.**
 
 ```bash
 # Step 1 — get the Natural Questions corpus
 pip install datasets
 
-# Step 2 — embed documents. Use build_embeddings.py in the repo root.
-# IMPORTANT for Mac users:
-#   --device cuda is for NVIDIA GPUs ONLY — it will not work on a Mac.
-#   Use --device mps (Apple Silicon GPU) or --device cpu instead.
-#
-# ALWAYS test with a small --limit first before committing to the
-# full multi-hour run:
+# Step 2 — embed documents, ALWAYS starting small
 .venv/bin/python3.11 build_embeddings.py \
     --dataset nq --batch-size 256 --device mps --limit 5000
 
@@ -289,405 +646,65 @@ pip install datasets
     --dataset nq --batch-size 256 --device mps
 
 # Step 3 — build an approximate index instead of exact search
-# IMPORTANT: nlist must scale with your vector count. FAISS needs
-# at least nlist vectors to train that many clusters — hardcoding
-# nlist=4096 will CRASH on small test runs (e.g. --limit 500).
 .venv/bin/python3.11 -c "
 import faiss, numpy as np, math
 d = 768
 vectors = np.load('embeddings/nq_embeddings.npy')
 n = vectors.shape[0]
-
-# safe formula: ~4*sqrt(n), capped so it never exceeds what you have
 nlist = max(1, min(int(4 * math.sqrt(n)), n // 4, n))
 print(f'n={n} vectors -> nlist={nlist}')
-
 quantizer = faiss.IndexFlatIP(d)
 index = faiss.IndexIVFFlat(quantizer, d, nlist, faiss.METRIC_INNER_PRODUCT)
-index.train(vectors[:n])        # train on what you actually have
-index.add(vectors)
-index.nprobe = max(1, nlist // 16)   # search ~6% of clusters
-faiss.write_index(index, 'ragshield_2m.index')
-print('Index built:', index.ntotal, 'vectors')
-"
-
-# Step 4 — re-run the SAME evaluation harness (no code changes needed
-#          in ring1_ingest.py, ring2_retrieval.py, or ring3_consensus.py)
-DEMO_MODE=0 .venv/bin/python3.11 -m frontend.pages.5_Results_Dashboard
-```
-
-**What to watch for after scaling:**
-
-```
-☐ Recall check: does IndexIVFFlat still find the SAME top-5 docs
-  as IndexFlatIP would, for a sample of test queries? (small
-  recall loss is expected and fine — big loss means nprobe is too low)
-☐ Memory usage during index.add() — monitor with Activity Monitor,
-  should stabilize around 8-10GB for 2.6M × 768-dim vectors
-☐ Query latency — should stay under ~100ms even at 2.6M scale with
-  a well-tuned nprobe
-```
-
-[⬆ Back to top](#top)
-
----
-
-<a id="e1-terminal-walkthrough"></a>
-### E.1 — Real Terminal Run — What You'll Actually See
-
-This is a REAL run, copied from an actual terminal session of my MBP Machine, showing
-the exact crash-then-fix journey — so you know it's normal to hit
-this once, and exactly how to read the messages.
-
-```
-ATTEMPT 1 — hardcoded nlist=4096, only 500 vectors on disk
-──────────────────────────────────────────────────────────
-
-.venv/bin/python3.11 -c "
-import faiss, numpy as np
-d = 768
-vectors = np.load('embeddings/nq_embeddings.npy')
-quantizer = faiss.IndexFlatIP(d)
-nlist = 4096
-index = faiss.IndexIVFFlat(quantizer, d, nlist, faiss.METRIC_INNER_PRODUCT)
-index.train(vectors[:200000])
-index.add(vectors)
-index.nprobe = 32
-faiss.write_index(index, 'ragshield_2m.index')
-print('Index built:', index.ntotal, 'vectors')
-"
-
-RuntimeError: ... 'nx >= static_cast<idx_t>(k)' failed:
-Number of training points (500) should be at least as
-large as number of clusters (4096)
-
-WHAT THIS MEANS IN PLAIN WORDS:
-  You told FAISS "sort my books into 4096 labeled bins."
-  You only HAVE 500 books. You can't fill 4096 bins with 500 books
-  — most bins would be completely empty, which breaks the maths
-  FAISS uses to build those bins in the first place.
-```
-
-```
-ATTEMPT 2 — manually lowered nlist to 89, still shows a WARNING
-────────────────────────────────────────────────────────────────
-
-nlist = 89   (a guess — closer, but still not quite right)
-
-WARNING clustering 500 points to 89 centroids: please provide
-at least 3471 training points
-Index built: 500 vectors
-
-WHAT THIS MEANS:
-  It didn't crash this time — 89 is small enough to actually work.
-  But FAISS is still politely warning you: "this works, but 89
-  bins is more than ideal for only 500 books — quality of the
-  bins won't be great." It's a WARNING, not an ERROR, so the
-  script finishes and the index gets saved — just not perfectly
-  tuned. This is fine for a quick test, not fine for production.
-```
-
-```
-ATTEMPT 3 — the RIGHT way: run the full pipeline script instead
-──────────────────────────────────────────────────────────────────
-
-.venv/bin/python3.11 build_embeddings.py \
-    --dataset nq --batch-size 256 --device mps --limit 5000
-
-============================================================
-  RAG-Shield Embedding Builder
-============================================================
-  Dataset:     nq
-  Batch size:  256
-  Device:      mps
-  Limit:       5000
-  Output:      embeddings/nq_embeddings.npy
-============================================================
-
-Loading all-mpnet-base-v2 model...
-Warning: You are sending unauthenticated requests to the HF Hub.
-Please set a HF_TOKEN to enable higher rate limits and faster
-downloads.
-Loading weights: 100%|████████████| 199/199 [00:00<00:00, 6421.40it/s]
-
-Downloading/loading Natural Questions corpus...
-Using the latest cached version of the dataset since
-natural_questions couldn't be found on the Hugging Face Hub
-Found the latest cached dataset configuration 'default'...
-Loading dataset shards: 100%|████████| 235/235 [00:23<00:00]
-Loaded 5000 documents from Natural Questions (limited to 5000).
-
-Embedding 5000 documents (batch size 256, device mps)...
-This is the slow part. Progress will print periodically.
-
-Batches: 75%|███████████████        | 15/20 [02:42<00:36, ...]
-```
-
-**How to read each of these lines, one at a time:**
-
-```
-"Warning: You are sending unauthenticated requests to the HF Hub"
-  → HF = Hugging Face, the site that hosts the AI model and dataset
-    files. This just means you haven't logged in with a free
-    account token. Totally safe to ignore for small/test runs —
-    only matters if you're downloading huge amounts repeatedly and
-    want faster/more reliable downloads. Not an error.
-
-"Loading weights: 100%|████| 199/199 [00:00<00:00, 6421.40it/s]"
-  → This is the all-mpnet-base-v2 model's internal numbers being
-    loaded into memory. 199/199 means all 199 pieces loaded.
-    6421 "it/s" = how fast each piece loaded. This finished
-    basically instantly here.
-
-"Using the latest cached version of the dataset since
- natural_questions couldn't be found on the Hugging Face Hub"
-  → Translation: "I tried to check online for the newest version
-    of this dataset, couldn't reach it (or it's not published
-    there under that exact name anymore), so I'm using the copy
-    you already downloaded before, sitting in your local cache
-    folder." This is FINE — you already have the data, no need
-    to worry.
-
-"Found the latest cached dataset configuration 'default' at
- /Users/rohitpatel/.cache/huggingface/datasets/..."
-  → This is just telling you WHERE on your hard drive it found
-    the cached copy. You'll rarely need this path yourself.
-
-"Loading dataset shards: 100%|████| 235/235 [00:23<00:00]"
-  → The Natural Questions dataset is split into 235 "shard" files
-    (like 235 separate boxes instead of one giant box, for easier
-    handling). All 235 loaded in 23 seconds.
-
-"Loaded 5000 documents from Natural Questions (limited to 5000)."
-  → Confirms your --limit 5000 flag worked — it only pulled the
-    first 5000 documents, not the entire 2.6-million-document
-    corpus. Good for testing.
-
-"Embedding 5000 documents (batch size 256, device mps)..."
-  → NOW the actual slow part begins: turning each of those 5000
-    text documents into a 768-number vector, using your Mac's
-    Apple GPU (mps), in batches of 256 documents at a time.
-
-"Batches: 75%|███████| 15/20 [02:42<00:36, ...]"
-  → Progress bar. 5000 documents ÷ 256 per batch ≈ 20 batches
-    total. 15 out of 20 done = 75%. "02:42<00:36" means
-    2 minutes 42 seconds have passed, roughly 36 seconds left.
-```
-
-[⬆ Back to top](#top)
-
----
-
-<a id="e2-line-by-line"></a>
-### E.2 — Line-by-Line — The Safe Index-Building Script
-
-Here is the EXACT fixed script from earlier, explained one line
-at a time, assuming zero prior knowledge of any single word in it.
-
-```python
-.venv/bin/python3.11 -c "
-import faiss, numpy as np, math
-```
-> **Line 1 (the shell command wrapper):** `.venv/bin/python3.11 -c "..."`
-> means "run Python from inside my project's own private toolbox
-> (`.venv`), and the code to run is everything inside these quote
-> marks." Using `-c` lets you run a short script directly from the
-> terminal without saving it to a `.py` file first.
->
-> **Line 2:** `import faiss, numpy as np, math` loads three toolkits:
-> - `faiss` — the fast vector-search library (see the dedicated
->   [RAGSHIELD_FAISS.md](RAGSHIELD_FAISS.md#top) guide)
-> - `numpy as np` — a library for working with big lists/grids of
->   numbers efficiently; `as np` just means "call it np for short"
-> - `math` — Python's built-in toolkit for things like square roots
-
-```python
-d = 768
-```
-> **Line 3:** creates a variable named `d` (short for "dimension")
-> and sets it to 768 — the number of numbers in each vector, because
-> that's what `all-mpnet-base-v2` outputs (see
-> [RAGSHIELD_NUMERICALS.md](RAGSHIELD_NUMERICALS.md#notation) for
-> what a "dimension" means).
-
-```python
-vectors = np.load('embeddings/nq_embeddings.npy')
-```
-> **Line 4:** opens the file `embeddings/nq_embeddings.npy` (the
-> `.npy` file you created earlier with `build_embeddings.py`) and
-> loads all the saved vectors into a variable called `vectors`.
-> Think of this as "open the box of pre-measured ingredients you
-> prepared earlier."
-
-```python
-n = vectors.shape[0]
-```
-> **Line 5:** `vectors.shape` tells you the SIZE of the vectors grid
-> — it returns something like `(5000, 768)`, meaning 5000 rows
-> (documents) by 768 columns (numbers per document). `.shape[0]`
-> grabs just the FIRST number in that pair — how many documents
-> (rows) you actually have. This is stored in `n`.
-
-```python
-# safe formula: ~4*sqrt(n), capped so it never exceeds what you have
-nlist = max(1, min(int(4 * math.sqrt(n)), n // 4, n))
-```
-> **Line 6 (comment):** starts with `#`, which means "this line is
-> a note for humans, Python ignores it completely."
->
-> **Line 7 — the actual safe formula, broken into pieces:**
-> - `math.sqrt(n)` — the square root of n (e.g. if n=5000,
->   `sqrt(5000) ≈ 70.7`)
-> - `4 * math.sqrt(n)` — multiply that by 4 (a commonly-used rule
->   of thumb in FAISS's own documentation for choosing a reasonable
->   number of clusters)
-> - `int(...)` — round it down to a whole number (you can't have
->   70.7 clusters, only whole clusters)
-> - `n // 4` — n divided by 4, rounded down (the `//` symbol means
->   "divide and throw away any leftover remainder")
-> - `min(int(4*sqrt(n)), n // 4, n)` — take the SMALLEST of these
->   three numbers, as a safety net, so nlist is never accidentally
->   bigger than what your data can actually support
-> - `max(1, ...)` — on the OUTSIDE, make sure the final answer is
->   never less than 1 (you always need at least 1 cluster)
->
-> **In plain words:** "figure out a sensible number of storage bins
-> for however many documents I actually have — never more bins
-> than documents allow."
-
-```python
-print(f'n={n} vectors -> nlist={nlist}')
-```
-> **Line 8:** prints a message to the screen showing exactly what
-> values were calculated, so you can SEE the numbers before
-> anything else happens. The `f'...'` is called an "f-string" — it
-> lets you drop variable values directly inside a text message
-> using curly braces `{}`.
-
-```python
-quantizer = faiss.IndexFlatIP(d)
-```
-> **Line 9:** creates a small HELPER index using exact search
-> (`IndexFlatIP` — see the dedicated
-> [RAGSHIELD_FAISS.md](RAGSHIELD_FAISS.md#top) guide for full
-> detail). This helper is used ONLY internally, to help sort
-> vectors into their bins — it is not your final search index.
-
-```python
-index = faiss.IndexIVFFlat(quantizer, d, nlist, faiss.METRIC_INNER_PRODUCT)
-```
-> **Line 10:** creates your REAL index — the approximate,
-> bin-sorting kind (`IndexIVFFlat`). It needs 4 pieces of
-> information: the helper quantizer from Line 9, the dimension
-> `d`, how many bins `nlist`, and which MATH RULE to use for
-> comparing vectors (`METRIC_INNER_PRODUCT` — the same "multiply
-> then add" idea from
-> [RAGSHIELD_NUMERICALS.md's cosine similarity explanation](RAGSHIELD_NUMERICALS.md#d-ring1-math)).
-
-```python
 index.train(vectors[:n])
-```
-> **Line 11:** this is the "sort the books into bins" step. FAISS
-> looks at your vectors and figures out where to draw the boundary
-> lines between bins so similar vectors end up together.
-> `vectors[:n]` means "use all n vectors you have" (slicing from
-> the start up to n — since n already equals the full count, this
-> uses everything).
-
-```python
 index.add(vectors)
-```
-> **Line 12:** now that the bins exist (from Line 11), actually
-> PLACE every vector into its correct bin. Training decides WHERE
-> the bins are; adding puts your actual data into them.
-
-```python
 index.nprobe = max(1, nlist // 16)
-```
-> **Line 13:** sets how many bins get CHECKED during each search —
-> not all of them (that would defeat the purpose of having bins),
-> just a fraction. `nlist // 16` means "roughly 1/16th, about 6%,
-> of the total bins." `max(1, ...)` again ensures you check AT
-> LEAST 1 bin even if nlist is tiny.
-
-```python
 faiss.write_index(index, 'ragshield_2m.index')
-```
-> **Line 14:** saves your finished, trained, populated index to a
-> file on disk named `ragshield_2m.index`, so you don't have to
-> rebuild it from scratch every time you restart your program.
-
-```python
 print('Index built:', index.ntotal, 'vectors')
 "
+
+# Step 4 — re-run the SAME evaluation harness using DEMO_MODE=2
+DEMO_MODE=2 .venv/bin/python3.11 -m frontend.pages.5_Results_Dashboard
 ```
-> **Line 15:** prints a final confirmation message. `index.ntotal`
-> is a built-in FAISS property that tells you exactly how many
-> vectors ended up stored inside the index — a good sanity check
-> that nothing went missing.
 
-[⬆ Back to top](#top)
-
----
-
-<a id="e3-post-step4"></a>
-### E.3 — What Comes After Step 4 — Finishing the 2M-Doc Scale-Up
-
-Once your evaluation harness runs successfully on the full-scale
-index (the end of Step 4 in Section E above), here are the
-remaining steps to fully complete the production-scale migration:
+**What comes after Step 4 — finishing the full scale-up:**
 
 ```bash
-# Step 5 — Verify search QUALITY didn't degrade too much
-# (approximate search trades a little accuracy for a lot of speed
-#  — this step checks you haven't traded away TOO much accuracy)
-
+# Step 5 — verify search QUALITY didn't degrade too much
 .venv/bin/python3.11 -c "
 import faiss, numpy as np
-
-# load both the OLD exact index and the NEW approximate index
 exact = faiss.read_index('ragshield_exact_baseline.index')
 approx = faiss.read_index('ragshield_2m.index')
-
-# run the same 20 test queries against both
 test_queries = np.load('embeddings/test_queries.npy')
-
 exact_scores, exact_ids = exact.search(test_queries, 5)
 approx_scores, approx_ids = approx.search(test_queries, 5)
-
-# count how many top-5 results MATCH between exact and approximate
-matches = 0
-total = 0
+matches, total = 0, 0
 for e_row, a_row in zip(exact_ids, approx_ids):
     matches += len(set(e_row) & set(a_row))
     total += 5
-
 recall = matches / total
 print(f'Recall vs exact search: {recall:.1%}')
 print('Target: 90%+ recall is considered production-safe')
 "
 
-# Step 6 — If recall is too low (below ~90%), increase nprobe
-# and re-test — this is the main knob to trade speed for accuracy
+# Step 6 — if recall is too low, increase nprobe and re-test
 #   index.nprobe = 64   # try doubling it, re-run Step 5
 
-# Step 7 — Re-run the FULL RAG-Shield evaluation harness at scale
-# to confirm Ring 1/2/3 still produce the expected ASR numbers
-# with the new index in place
-DEMO_MODE=0 .venv/bin/python3.11 -m frontend.pages.5_Results_Dashboard
+# Step 7 — confirm Ring 1/2/3 still produce expected ASR at scale
+DEMO_MODE=2 .venv/bin/python3.11 -m frontend.pages.5_Results_Dashboard
 
-# Step 8 — Update your .env / config to point at the new index
-# instead of the small demo one, so the live Streamlit app uses
-# the 2M-scale index going forward
-#   FAISS_INDEX_PATH=ragshield_2m.index
+# Step 8 — point the live app permanently at your new index by
+#          adding these lines to your ACTUAL .env file (not just
+#          setting them as one-off shell exports, which vanish when
+#          you close the terminal). Open .env and add:
+#
+#   SCALE_EMBEDDINGS_PATH=embeddings/nq_embeddings.npy
+#   SCALE_FAISS_INDEX_PATH=ragshield_2m.index
+#
+# See Section B.5 below for the full explanation of why this matters
+# and a copy-paste-ready block for your .env file.
 
-# Step 9 — Document the final numbers in your paper/README:
-#   - final vector count (should read ~2,600,000)
-#   - nlist and nprobe values actually used
-#   - measured recall vs exact search
-#   - measured query latency at this scale
-#   - confirm Ring 1/2/3 ASR results are consistent with the
-#     smaller-scale numbers already reported
+# Step 9 — document final numbers: vector count, nlist/nprobe used,
+#          measured recall, measured latency, ASR consistency
 ```
 
 **Checklist — you're fully done scaling when:**
@@ -698,10 +715,10 @@ DEMO_MODE=0 .venv/bin/python3.11 -m frontend.pages.5_Results_Dashboard
   large representative sample, 100K+ vectors)
 ☐ Recall vs exact search measured and above ~90%
 ☐ Query latency confirmed under ~100ms per search
-☐ Full RAG-Shield evaluation harness re-run successfully
+☐ Full RAG-Shield evaluation harness re-run successfully under
+  DEMO_MODE=2
 ☐ ASR numbers at scale documented and compared to small-scale
-  numbers (they should be similar — Ring 1/2/3 math is unchanged,
-  see Numericals Section H)
+  numbers (they should be similar — Ring 1/2/3 math is unchanged)
 ```
 
 [⬆ Back to top](#top)
@@ -762,6 +779,46 @@ DEMO_MODE=0 .venv/bin/python3.11 -m frontend.pages.5_Results_Dashboard
 > matrices — only normal text-in, text-out API calls. Works
 > identically on closed APIs (Claude, GPT-4) and open local models.
 
+**Q11. Why add DEMO_MODE=2 instead of just modifying DEMO_MODE=0
+to load the big dataset?**
+> Safety and reversibility. DEMO_MODE=0 and DEMO_MODE=1 are your
+> proven, working demo/live paths — they must never break,
+> especially right before a viva or presentation. Adding a third
+> VALUE to the same variable is purely additive: every existing
+> command you already use keeps working byte-for-byte identically.
+> If Scale Mode ever has a bug, it only affects DEMO_MODE=2 — your
+> demo (1) and live (0) paths are completely unaffected because
+> the code checks scale_mode() first and returns early, never
+> touching the original demo/live logic underneath.
+
+**Q12. What was the actual bug found in retriever_backend(), and
+how do you know the fix didn't break anything?**
+> The function's final fallback line defaulted RETRIEVER to
+> "tfidf" when unset, but the Retriever class treats "tfidf" as
+> demo-style backend rather than real FAISS search. So DEMO_MODE=0
+> alone silently gave you the small demo KB, not real live search.
+> The fix changes only the DEFAULT VALUE of that one os.getenv()
+> call, from "tfidf" to "faiss". Verified safe by testing 4
+> scenarios directly: DEMO_MODE=1 unaffected, DEMO_MODE=0 with
+> RETRIEVER unset now correctly gives "faiss", DEMO_MODE=0 with
+> RETRIEVER=tfidf explicitly set still respects that override, and
+> DEMO_MODE=2 unaffected.
+
+**Q13. There were TWO separate bugs related to DEMO_MODE=2 — what
+was the second one, and why is importing config.py directly a
+better fix than writing a new local calculation?**
+> The second bug was in backends_status.py — a standalone script
+> with its OWN hardcoded copy of the mode-detection logic, written
+> before DEMO_MODE=2 existed. It only checked for 2 modes, so
+> DEMO_MODE=2 fell into its "not demo" exclusion list incorrectly,
+> causing it to print "DEMO mode: 3 MOCK LLMs" even while
+> successfully pinging 3 REAL backends. The fix imports demo_mode()
+> and scale_mode() directly from config.py instead of recalculating
+> them locally — this means there is now only ONE authoritative
+> place in the entire codebase that decides what each DEMO_MODE
+> value means, so this exact class of bug (two files disagreeing
+> about mode logic) cannot happen again.
+
 [⬆ Back to top](#top)
 
 ---
@@ -782,6 +839,21 @@ BAPS            → Black-box, All-3-stages, Pipeline, Scalable
 "venv python    → always run scripts through .venv/bin/python3.11,
  not system      never bare "python3" — avoids version-mismatch
  python"          errors like int|None syntax failures
+
+0-1-2 = GEARS   → the three DEMO_MODE values, easiest way to remember:
+                  1 = small KB + fake LLMs   (first gear)
+                  0 = small KB + real LLMs   (second gear)
+                  2 = BIG KB + real LLMs     (third gear, NEW)
+                 "0 and 1 stay small. 2 goes big."
+
+"faiss not      → the exact one-word fix for the retriever_backend()
+ tfidf"           bug: change the DEFAULT string from "tfidf" to
+                  "faiss" so DEMO_MODE=0 means real search by default
+
+"ONE SOURCE OF  → the fix for the backends_status.py bug: it now
+ TRUTH"           IMPORTS demo_mode()/scale_mode() from config.py
+                  instead of recalculating its own copy — one file
+                  decides mode logic, everyone else just asks it
 ```
 
 [⬆ Back to top](#top)
@@ -792,18 +864,33 @@ BAPS            → Black-box, All-3-stages, Pipeline, Scalable
 ## H. Cheatsheet — Commands in One Block
 
 ```bash
-# Full daily routine:
+# ── DEMO_MODE=1 — instant, no keys needed ──
+DEMO_MODE=1 .venv/bin/python3.11 backends_status.py   # optional pre-flight
+.venv/bin/python3.11 -m streamlit run frontend/app.py
+
+# ── DEMO_MODE=0 — your live demo, real LLMs, small KB ──
 cd poisonedrag-ragshield-group6-iitj
 ps aux | grep -i ollama
 DEMO_MODE=0 .venv/bin/python3.11 backends_status.py
 DEMO_MODE=0 bash run_live.sh &
 bash tail_logs.sh
 
-# Instant fallback if anything breaks:
-DEMO_MODE=1 .venv/bin/python3.11 -m streamlit run frontend/app.py
+# ── DEMO_MODE=2 — YOUR large dataset, real LLMs ──
+.venv/bin/python3.11 build_embeddings.py --dataset nq --device mps --limit 5000
+# (build the FAISS index — see Section E, Step 3)
+DEMO_MODE=2 .venv/bin/python3.11 backends_status.py
+DEMO_MODE=2 bash run_live.sh
+# quick check Scale Mode is really loading your data:
+DEMO_MODE=2 .venv/bin/python3.11 -c "from ragshield_core.retriever import Retriever; r=Retriever().load_kb(); print(r.backend, len(r.docs))"
 
-# Scaling test run (always start small):
-.venv/bin/python3.11 build_embeddings.py --dataset nq --device cpu --limit 5000
+# ── Verify all 3 backend/mode combinations in one go (copy-paste all) ──
+for mode in 1 0 2; do
+  echo "=== DEMO_MODE=$mode ==="
+  DEMO_MODE=$mode .venv/bin/python3.11 -c "from ragshield_core.retriever import Retriever; print(Retriever().load_kb().backend)"
+done
+
+# ── Instant fallback if anything breaks ──
+DEMO_MODE=1 .venv/bin/python3.11 -m streamlit run frontend/app.py
 ```
 
 [⬆ Back to top](#top)
@@ -827,6 +914,13 @@ If asked "does this scale to millions of documents?":
      index type changes from exact (IndexFlatIP) to approximate
      (IndexIVFFlat). See Numericals Section H for the full proof."
 
+If asked "how many modes does your system have, and why?":
+  → "Three — DEMO_MODE 0, 1, and 2. Mode 1 is instant testing with
+     fake LLMs. Mode 0 is the real demo with real LLMs on a small
+     KB. Mode 2 is the same real LLMs but tested against a large,
+     real-world-scale dataset — added as a pure extension, never
+     touching the existing 0/1 code paths."
+
 If the demo crashes mid-presentation:
   → DEMO_MODE=1 fallback (Section D above) — same story, same
     numbers, zero API dependency, restarts in seconds
@@ -834,7 +928,7 @@ If the demo crashes mid-presentation:
 If asked about current limitations:
   → be honest: "5K documents / 10 questions currently — actively
     scaling to the full 2.6M-passage NQ corpus as part of the
-    production expansion plan"
+    production expansion plan, using DEMO_MODE=2"
 ```
 
 [⬆ Back to top](#top)
@@ -845,6 +939,6 @@ If asked about current limitations:
 
 **Previous:** [RAGSHIELD_THEORY.md](RAGSHIELD_THEORY.md#top) (the story) → [RAGSHIELD_NUMERICALS.md](RAGSHIELD_NUMERICALS.md#top) (the math) → **This file:** RAGSHIELD_PRACTICE.md (running it)
 
-[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice (you are here)](#top) &nbsp;·&nbsp; [🔍 FAISS Deep-Dive](RAGSHIELD_FAISS.md#top)
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice (you are here)](#top)
 
 [⬆ Back to top](#top)
