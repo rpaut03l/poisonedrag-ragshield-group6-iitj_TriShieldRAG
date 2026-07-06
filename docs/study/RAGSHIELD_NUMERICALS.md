@@ -1,17 +1,19 @@
 <a id="top"></a>
 
-# 🧮 RAG-Shield NUMERICALS
-### Every formula, every notation, worked step by step with real numbers
+# 🧮 RAGSHIELD_NUMERICALS.md — Every Formula, Worked Step by Step
+### The exact math behind RAG-Shield — every symbol explained before it's used
 
 ---
 
-## 🔝 Top Navigation
+## 🔝 TOP NAVIGATION — Jump to any file
 
-[⬅ Repo Home](../../README.md) · [Docs Index](../README.md) · [🏠 Study Index](RAGSHIELD_INDEX.md) · [🎓 Math Primer](RAGSHIELD_MATH_PRIMER.md) · [📘 Theory](RAGSHIELD_THEORY.md) · [🛠️ Practice](RAGSHIELD_PRACTICE.md)
+**Previous:** [RAGSHIELD_THEORY.md](RAGSHIELD_THEORY.md#top) (the story) → **This file:** RAGSHIELD_NUMERICALS.md (the math) → **Next:** [RAGSHIELD_PRACTICE.md](RAGSHIELD_PRACTICE.md#top) (running it)
+
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 Numericals (you are here)](#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top)
 
 ---
 
-## 📌 Table of Contents
+## 📌 TABLE OF CONTENTS
 
 - [Notation Key — Read This First](#notation)
 - [D. Ring 1 Math — Ingest Guard](#d-ring1-math)
@@ -466,7 +468,7 @@ know or care which index type produced `ret_score`.
 
 ```
 ☐ RAM: ~8GB for 2.6M × 768-dim float32 vectors — plan 16GB+
-☐ Embedding time: ~45 min on GPU vs ~14 hrs on CPU
+☐ Embedding time: ~2-4 hrs on Apple GPU (mps) vs ~10-14 hrs on CPU
 ☐ Train IndexIVFFlat on a 100-500K representative sample first
 ☐ Ring 1 OutlierDetector centroid: works as-is; per-cluster
   centroids are a nice-to-have refinement, not a requirement
@@ -502,14 +504,14 @@ max() not avg() → Ring 1's rule: "one loud alarm is enough"
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │ RING 1 — perplexity                                          │
-│ diversity = |unique(words)| / |words|                        │
+│   diversity = |unique(words)| / |words|                      │
 │   rep = 1 - diversity                                        │
 │   top = count(most common word) / |words|                    │
 │   p = min(1, 0.6·rep + 2.0·max(0, top - 0.12))               │
 ├──────────────────────────────────────────────────────────────┤
 │ RING 1 — pattern                                             │
 │ s = 0.4[Q-sentence&short] + 0.5[verbatim Q] + 0.3[authority] │
-│ pa = min(1, s)                                               │
+│   pa = min(1, s)                                             │
 ├──────────────────────────────────────────────────────────────┤
 │ RING 1 — outlier                                             │
 │   o = min(1, max(0, 1 - cos(v, centroid)))                   │
@@ -565,8 +567,10 @@ FIX:  NO — ret_score still means "similarity to query," just
 
 ---
 
-## 🔚 Bottom Navigation
+## 🔚 BOTTOM NAVIGATION — Jump to any file
 
-[⬅ Repo Home](../../README.md) · [Docs Index](../README.md) · [🏠 Study Index](RAGSHIELD_INDEX.md) · [🎓 Math Primer](RAGSHIELD_MATH_PRIMER.md) · [📘 Theory ➡](RAGSHIELD_THEORY.md) · [🛠️ Practice ➡](RAGSHIELD_PRACTICE.md)
+**Previous:** [RAGSHIELD_THEORY.md](RAGSHIELD_THEORY.md#top) (the story) → **This file:** RAGSHIELD_NUMERICALS.md (the math) → **Next:** [RAGSHIELD_PRACTICE.md](RAGSHIELD_PRACTICE.md#top) (running it)
+
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 Numericals (you are here)](#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top)
 
 [⬆ Back to top](#top)
