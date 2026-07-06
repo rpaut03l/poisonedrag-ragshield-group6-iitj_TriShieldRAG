@@ -65,6 +65,7 @@
 #     return out
 
 
+
 """
 ragshield_core.config
 Central configuration: paths, environment, and run-mode flags.
@@ -164,7 +165,13 @@ def retriever_backend() -> str:
         return "scale"
     if demo_mode():
         return "demo"
-    return os.getenv("RETRIEVER", "tfidf")
+    # FIXED: when DEMO_MODE=0 (live mode) and RETRIEVER isn't explicitly
+    # set, default to "faiss" (real embeddings), not "tfidf" (demo-style
+    # retriever). Previously this defaulted to "tfidf", which the
+    # Retriever class treats as "demo" backend — meaning DEMO_MODE=0
+    # silently behaved like DEMO_MODE=1 unless you remembered to also
+    # export RETRIEVER=faiss by hand. Now DEMO_MODE=0 alone is enough.
+    return os.getenv("RETRIEVER", "faiss")
 EMBED_MODEL = os.getenv("EMBED_MODEL", "all-mpnet-base-v2")
 
 # ---- LLM backend defaults ------------------------------------------
