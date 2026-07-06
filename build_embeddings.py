@@ -24,6 +24,7 @@ import argparse
 import time
 import sys
 from pathlib import Path
+from typing import Optional, List
 
 import numpy as np
 
@@ -50,7 +51,7 @@ def get_args():
     return p.parse_args()
 
 
-def load_documents(dataset_name: str, limit: int | None):
+def load_documents(dataset_name: str, limit: Optional[int]) -> List[str]:
     if dataset_name == "demo":
         # Reuses your existing small demo KB from retriever.py
         from ragshield_core.retriever import _DEMO_CLEAN
@@ -84,6 +85,8 @@ def load_documents(dataset_name: str, limit: int | None):
         print(f"Loaded {len(docs)} documents from Natural Questions "
               f"({'limited to ' + str(limit) if limit else 'full corpus'}).")
         return docs
+
+    return []
 
 
 def main():
