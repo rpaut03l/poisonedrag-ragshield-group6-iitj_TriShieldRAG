@@ -202,9 +202,9 @@ Ingredient 3 — Retrieval score = "How well did this match the
                           ▼
               Do at least 2 out of 3 agree?
                           │
-              ┌───────────┴───────────────┐
-             YES                          NO
-              │                           │
+              ┌───────────┴─────────────┐
+             YES                        NO
+              │                         │
        accept the answer          drop weakest doc,
                                    ask ONE more time
 ```
@@ -341,22 +341,22 @@ three gears — same car, same engine, different speed for different
 situations.
 
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│  DEMO_MODE=1  (default — "first gear")                             │
-│  Small built-in KB (12 clean docs, 5 questions)                    │
-│  Fake/mock LLM answers — no internet, no API keys needed           │
-│  Use for: instant testing, no setup, showing the CONCEPT quickly   │
-├────────────────────────────────────────────────────────────────────┤
-│  DEMO_MODE=0  ("second gear")                                      │
-│  Same small built-in KB (12 clean docs, 5 questions)               │
-│  REAL LLMs — Claude, Mistral, LLaMA all actually called            │
-│  Use for: your live demo, showing the REAL AI models working       │
-├────────────────────────────────────────────────────────────────────┤
-│  DEMO_MODE=2  ("third gear" — NEW)                                 │
-│  YOUR large dataset (5,000 to 2,600,000 Natural Questions docs)    │
-│  REAL LLMs — same as DEMO_MODE=0                                   │
-│ Use for: testing RAG-Shield actually scales to a real-world corpus │
-└────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│  DEMO_MODE=1  (default — "first gear")                              │
+│  Small built-in KB (12 clean docs, 5 questions)                     │
+│  Fake/mock LLM answers — no internet, no API keys needed            │
+│  Use for: instant testing, no setup, showing the CONCEPT quickly    │
+├─────────────────────────────────────────────────────────────────────┤
+│  DEMO_MODE=0  ("second gear")                                       │
+│  Same small built-in KB (12 clean docs, 5 questions)                │
+│  REAL LLMs — Claude, Mistral, LLaMA all actually called             │
+│  Use for: your live demo, showing the REAL AI models working        │
+├─────────────────────────────────────────────────────────────────────┤
+│  DEMO_MODE=2  ("third gear" — NEW)                                  │
+│  YOUR large dataset (5,000 to 2,600,000 Natural Questions docs)     │
+│  REAL LLMs — same as DEMO_MODE=0                                    │
+│  Use for: testing RAG-Shield actually scales to a real-world corpus │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Why a Number, Not Three Separate Variables?
@@ -386,19 +386,19 @@ the RINGS don't care which mode loaded the documents. They just see
 ### Quick Reference Table
 
 ```
-┌─────────────┬────────────────────┬──────────────┬───────────────────────┐
-│ Flag        │ Documents          │ LLMs         │ Typical use           │
-├─────────────┼────────────────────┼──────────────┼───────────────────────┤
-│ DEMO_MODE=1 │ 12 built-in docs   │ Mock/fake    │ Quick local test,     │
-│ (default)   │                    │              │ no API keys needed    │
-├─────────────┼────────────────────┼──────────────┼───────────────────────┤
-│ DEMO_MODE=0 │ 12 built-in docs   │ Real (Claude,│ Live demo/viva —      │
-│             │                    │ Mistral,     │ shows real AI working │
-│             │                    │ LLaMA)       │                       │
-├─────────────┼────────────────────┼──────────────┼───────────────────────┤
-│ DEMO_MODE=2 │ YOUR large dataset │ Real (same as│ Proving RAG-Shield    │
-│ (NEW)       │ (5K–2.6M docs)     │ mode 0)      │ works at real scale   │
-└─────────────┴────────────────────┴──────────────┴───────────────────────┘
+┌──────────────┬─────────────────────┬─────────────┬─────────────────────┐
+│ Flag         │ Documents           │ LLMs        │ Typical use         │
+├──────────────┼─────────────────────┼─────────────┼─────────────────────┤
+│ DEMO_MODE=1  │ 12 built-in docs    │ Mock/fake   │ Quick local test,   │
+│ (default)    │                     │             │ no API keys neede   │
+├──────────────┼─────────────────────┼─────────────┼─────────────────────┤
+│ DEMO_MODE=0  │ 12 built-in docs    │ Real(Claude,│ Live demo/viva —    │
+│              │                     │ Mistral,    │shows real AI working│
+│              │                     │ LLaMA)      │                     │
+├──────────────┼─────────────────────┼─────────────┼─────────────────────┤
+│ DEMO_MODE=2  │ YOUR large dataset  │ Real(same as│ Proving RAG-Shield  │
+│ (NEW)        │ (5K–2.6M docs)      │ mode 0)     │ works at real scale │
+└──────────────┴─────────────────────┴─────────────┴─────────────────────┘
 ```
 
 Full setup steps for every mode are in
@@ -443,18 +443,18 @@ SAD vs GLAD    → how we differ from the 2 pure-attack papers
 ## K. Cheatsheet
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│ RING │ FILE                  │ ASKS                        │
-├────────────────────────────────────────────────────────────┤
-│  1   │ ring1_ingest.py       │ "Is this doc suspicious     │
-│      │                       │  on its own?"               │
-├────────────────────────────────────────────────────────────┤
-│  2   │ ring2_retrieval.py    │ "Does this doc agree wit    │
-│      │                       │  the others retrieved?"     │
-├────────────────────────────────────────────────────────────┤
-│  3   │ ring3_consensus.py    │ "Do 3 AI models agree on    │
-│      │                       │  the final answer?"         │
-└────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│ RING │ FILE                   │ ASKS                          │
+├───────────────────────────────────────────────────────────────┤
+│  1   │ ring1_ingest.py        │ "Is this doc suspicious       │
+│      │                        │  on its own?"                 │
+├───────────────────────────────────────────────────────────────┤
+│  2   │ ring2_retrieval.py     │ "Does this doc agree with     │
+│      │                        │  the others retrieved?"       │
+├───────────────────────────────────────────────────────────────┤
+│  3   │ ring3_consensus.py     │ "Do 3 AI models agree on      │
+│      │                        │  the final answer?"           │
+└───────────────────────────────────────────────────────────────┘
 
 SCALING TO 2M DOCS: change ONLY the retrieval index type
   (IndexFlatIP → IndexIVFFlat). Ring 1/2/3 math untouched.
