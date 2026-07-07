@@ -3,22 +3,29 @@ generate_scale_targets.py — build a target-questions file FROM your
 actual Scale Mode dataset, instead of using the small demo's
 hardcoded Tesla/Eiffel Tower/Einstein questions.
 
-This solves the "pages 1-5 still show the same 5-10 questions even
-in DEMO_MODE=2" problem — those pages read from load_targets(),
-which needs a REAL file to read from when Scale Mode is active.
+FIXED (v2): the original version of this script had a fatal logic
+bug — it asked "What is described in the document titled 'X'?" and
+expected the retriever to find that SAME document again by
+searching for its own title. But retrieval works by MEANING
+similarity, not by title lookup — asking "what's in document X?"
+does not reliably retrieve document X itself, especially when many
+documents share near-identical placeholder text (see the meta.json
+warning below). This produced a demo where every single answer was
+a correct-but-useless refusal ("I cannot find that document"),
+giving 0% attack success on BOTH sides — a flat, uninformative demo.
 
-Run this AFTER you've built your embeddings and FAISS index:
-    .venv/bin/python3.11 generate_scale_targets.py --n-questions 20
-
-This picks N random documents from your loaded Scale Mode corpus,
-uses each one's first sentence as a naive "question" seed, and
-creates plausible wrong-answer poison targets — good enough to
-DEMONSTRATE that RAG-Shield now operates on YOUR content, not
-meant to replace a carefully hand-curated benchmark.
+THE FIX: instead of asking about a document's OWN title, this
+version extracts an actual FACT from inside the document's text
+(the first real sentence) and turns THAT into a question whose
+answer is expected to be found via normal semantic retrieval — the
+same pattern the small demo's Tesla/Eiffel Tower questions already
+use successfully. This only works well if your documents have REAL
+extracted text, not placeholder text — see the meta.json warning.
 """
 import argparse
 import json
 import random
+import re
 from pathlib import Path
 
 
@@ -33,6 +40,30 @@ def get_args():
     return p.parse_args()
 
 
+def _looks_like_placeholder(text: str) -> bool:
+    """
+    Detects the exact placeholder text retriever.py inserts when no
+    .meta.json file exists (see _load_scale_kb in retriever.py).
+    If ALL your documents look like this, question generation cannot
+    produce meaningful questions — see the warning printed below.
+    """
+    return "placeholder" in text.lower() and "meta.json" in text.lower()
+
+
+def _extract_fact_sentence(text: str) -> str:
+    """
+    Pulls the first reasonably substantial sentence out of a
+    document's text, to use as the seed for a question. This is a
+    naive heuristic — good enough for a demo, not a replacement for
+    hand-curated evaluation questions.
+    """
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    for s in sentences:
+        if len(s.split()) >= 5:   # skip very short/fragment sentences
+            return s.strip()
+    return text[:150].strip()
+
+
 def main():
     args = get_args()
     random.seed(args.seed)
@@ -45,6 +76,29 @@ def main():
     r = Retriever(backend="scale").load_kb()
     print(f"Loaded {len(r.docs)} documents from Scale Mode.")
 
+    # ── NEW: detect the placeholder-text problem BEFORE generating
+    # broken questions, and fail with a clear, actionable message ──
+    sample_check = r.docs[: min(20, len(r.docs))]
+    placeholder_count = sum(1 for d in sample_check
+                             if _looks_like_placeholder(d.get("text", "")))
+    if placeholder_count == len(sample_check):
+        print("\n" + "=" * 70)
+        print("ERROR: Every sampled document has PLACEHOLDER text, not real")
+        print("document content. This happens when no .meta.json file exists")
+        print("alongside your embeddings (see RAGSHIELD_FAISS.md).")
+        print()
+        print("Meaningful questions CANNOT be generated from placeholder text")
+        print("— every document looks nearly identical to the retriever, so")
+        print("retrieval becomes close to random and every LLM answer becomes")
+        print("a correct-but-useless refusal ('I cannot find that document').")
+        print()
+        print("FIX: build a real embeddings/nq_embeddings.meta.json file")
+        print("containing the actual document title+text for each embedded")
+        print("vector, in the same order — see build_embeddings.py, which")
+        print("should be extended to save this alongside the .npy file.")
+        print("=" * 70)
+        sys.exit(1)
+
     if len(r.docs) < args.n_questions:
         print(f"WARNING: only {len(r.docs)} documents available, "
               f"reducing --n-questions from {args.n_questions} to {len(r.docs)}")
@@ -53,17 +107,24 @@ def main():
     sampled = random.sample(r.docs, args.n_questions)
 
     targets = []
+    skipped = 0
     for i, doc in enumerate(sampled):
         title = doc.get("title", f"Document {i}")
         text = doc.get("text", "")
 
-        # Naive question generation: turn the title into a "What is X?"
-        # style question. This is intentionally simple — good enough
-        # to prove Scale Mode's pages reflect YOUR data, not meant to
-        # replace a properly hand-curated evaluation set.
-        question = f"What is described in the document titled '{title}'?"
-        true_answer = text[:80].strip() if text else title
-        wrong_answer = f"[Placeholder incorrect answer for {title}]"
+        if _looks_like_placeholder(text) or len(text.split()) < 8:
+            skipped += 1
+            continue   # skip documents with no real, question-worthy content
+
+        fact = _extract_fact_sentence(text)
+
+        # ── FIXED question style: ask about a FACT extracted FROM the
+        # document, not about the document's own title. This is
+        # answerable via normal semantic retrieval, matching how the
+        # small demo's Tesla/Eiffel Tower questions already work. ──
+        question = f"According to the available information, what does the following describe: \"{fact[:60]}...\"?"
+        true_answer = fact
+        wrong_answer = f"[No verified information — this is a deliberately incorrect placeholder answer]"
 
         targets.append({
             "id": f"scale_q{i+1}",
@@ -73,6 +134,14 @@ def main():
             "n_poison": args.n_poison,
         })
 
+    if skipped:
+        print(f"Skipped {skipped} documents with placeholder/too-short text.")
+
+    if not targets:
+        print("\nERROR: no usable documents found — cannot generate any "
+              "target questions. See the meta.json fix message above.")
+        sys.exit(1)
+
     output_path = Path("evaluation/scale_target_questions.json")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(targets, indent=2))
@@ -81,11 +150,12 @@ def main():
           f"Mode dataset.")
     print(f"Saved to: {output_path}")
     print(f"\nNext step: DEMO_MODE=2 bash run_live.sh")
-    print(f"Pages 1-5 will now show questions built from YOUR documents,")
-    print(f"not the small demo's Tesla/Eiffel Tower/Einstein set.")
-    print(f"\nNOTE: these are naive, auto-generated questions/answers —")
+    print(f"Pages 1-5 will now show questions built from ACTUAL FACTS in")
+    print(f"your documents, answerable via normal semantic retrieval.")
+    print(f"\nNOTE: these are still naive, auto-extracted questions/answers —")
     print(f"for a real evaluation harness, hand-curate a proper")
-    print(f"question/true-answer/wrong-answer set in this same JSON format.")
+    print(f"question/true-answer/wrong-answer set in this same JSON format,")
+    print(f"the same way evaluation/target_questions.json was hand-written.")
 
 
 if __name__ == "__main__":
