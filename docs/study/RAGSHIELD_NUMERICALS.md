@@ -645,43 +645,43 @@ FAISS LAST        because "2" is a MORE SPECIFIC signal than the
 ## K. Cheatsheet — All Formulas, One Page
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│ RING 1 — perplexity                                          │
-│   diversity = |unique(words)| / |words|                      │
-│   rep = 1 - diversity                                        │
-│   top = count(most common word) / |words|                    │
-│   p = min(1, 0.6·rep + 2.0·max(0, top - 0.12))               │
-├──────────────────────────────────────────────────────────────┤
-│ RING 1 — pattern                                             │
-│  s = 0.4[Q-sentence&short] + 0.5[verbatim Q] + 0.3[authority]│
-│  pa = min(1, s)                                              │
-├──────────────────────────────────────────────────────────────┤
-│ RING 1 — outlier                                             │
-│   o = min(1, max(0, 1 - cos(v, centroid)))                   │
-├──────────────────────────────────────────────────────────────┤
-│ RING 1 — combine                                             │
-│   combined = max(p, pa, 0.7·o + 0.3·max(p,pa))               │
-│   blocked if combined ≥ 0.5                                  │
-├──────────────────────────────────────────────────────────────┤
-│ RING 2 — trust                                               │
-│   trust = 0.45·prov + 0.35·cons + 0.20·ret_score             │
-│   dropped if trust < 0.35                                    │
-├──────────────────────────────────────────────────────────────┤
-│ RING 3 — agreement                                           │
-│   frac = agree_n / panel_size                                │
-│   agreed if frac ≥ 0.66                                      │
-├──────────────────────────────────────────────────────────────┤
-│ DEMO_MODE LOGIC                                              │
-│  scale_mode()  = (DEMO_MODE == "2")                          │
-│  demo_mode()   = (DEMO_MODE not in {"0","false","False","2"})│
-│  backend = "scale" if scale_mode()                           │
-│           else "demo" if demo_mode()                         │
-│           else os.getenv("RETRIEVER", "faiss")               │
-├──────────────────────────────────────────────────────────────┤
-│ SCALING — only this changes                                  │
-│   IndexFlatIP (exact) → IndexIVFFlat (approximate)           │
-│   Ring 1/2/3 formulas: UNCHANGED at any KB size              │
-└──────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│ RING 1 — perplexity                                            │
+│   diversity = |unique(words)| / |words|                        │
+│   rep = 1 - diversity                                          │
+│   top = count(most common word) / |words|                      │
+│   p = min(1, 0.6·rep + 2.0·max(0, top - 0.12))                 │
+├────────────────────────────────────────────────────────────────┤
+│ RING 1 — pattern                                               │
+│   s = 0.4[Q-sentence&short] + 0.5[verbatim Q] + 0.3[authority] │
+│   pa = min(1, s)                                               │
+├────────────────────────────────────────────────────────────────┤
+│ RING 1 — outlier                                               │
+│   o = min(1, max(0, 1 - cos(v, centroid)))                     │
+├────────────────────────────────────────────────────────────────┤
+│ RING 1 — combine                                               │
+│   combined = max(p, pa, 0.7·o + 0.3·max(p,pa))                 │
+│   blocked if combined ≥ 0.5                                    │
+├────────────────────────────────────────────────────────────────┤
+│ RING 2 — trust                                                 │
+│   trust = 0.45·prov + 0.35·cons + 0.20·ret_score               │
+│   dropped if trust < 0.35                                      │
+├────────────────────────────────────────────────────────────────┤
+│ RING 3 — agreement                                             │
+│   frac = agree_n / panel_size                                  │
+│   agreed if frac ≥ 0.66                                        │
+├────────────────────────────────────────────────────────────────┤
+│ DEMO_MODE LOGIC                                                │
+│   scale_mode()  = (DEMO_MODE == "2")                           │
+│   demo_mode()   = (DEMO_MODE not in {"0","false","False","2"}) │
+│   backend = "scale" if scale_mode()                            │
+│            else "demo" if demo_mode()                          │
+│            else os.getenv("RETRIEVER", "faiss")                │
+├────────────────────────────────────────────────────────────────┤
+│ SCALING — only this changes                                    │
+│   IndexFlatIP (exact) → IndexIVFFlat (approximate)             │
+│   Ring 1/2/3 formulas: UNCHANGED at any KB size                │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 [⬆ Back to top](#top)
