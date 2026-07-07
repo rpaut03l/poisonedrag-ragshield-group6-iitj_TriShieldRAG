@@ -92,6 +92,13 @@ class Retriever:
         self._embedder = None
         self._poison: list[dict] = []
         self._scale_vectors = None   # NEW: holds pre-built embeddings in Scale Mode
+        self._scale_embedded_ids = set()   # NEW (Bug #9 fix): tracks which
+                                            # poison doc IDs have already
+                                            # been embedded + added to the
+                                            # live FAISS index, so we never
+                                            # double-embed the same poison
+                                            # doc twice across repeated
+                                            # inject_poison() calls
 
     # ---------- loading ----------
     def load_kb(self):
@@ -212,6 +219,23 @@ class Retriever:
     def remove_poison(self):
         """Restore a clean corpus (for A/B comparison)."""
         self.docs = [d for d in self.docs if d.get("source") != "POISONED"]
+
+        # ── FIXED (Bug #9, continued): FAISS's IndexFlatIP/IndexIVFFlat
+        # do not support removing individual vectors once added. If
+        # Scale Mode simply called self._build() here (which now
+        # correctly ADDS poison vectors), any PREVIOUSLY-added poison
+        # vectors from an earlier inject_poison() call would remain
+        # permanently baked into the live index, contaminating future
+        # "undefended" A/B comparisons. The fix: for Scale Mode,
+        # reload the ORIGINAL clean index fresh from disk, discarding
+        # any poison vectors added during this session, rather than
+        # trying to selectively remove them (which FAISS can't do).
+        if self.backend == "scale":
+            self._faiss = None
+            self._scale_embedded_ids = set()
+            self._load_scale_kb()
+            return self
+
         self._build()
         return self
 
@@ -221,16 +245,54 @@ class Retriever:
         return self
 
     def _build(self):
-        # ── NEW: Scale Mode already has a pre-built FAISS index loaded
-        # in load_kb() -> _load_scale_kb(). Re-building from scratch
-        # here would throw away that work, so we skip straight past
-        # it. If poison gets injected in Scale Mode later, a full
-        # re-embed would be needed — flagged as future work, not
-        # silently done wrong. ──
+        # ── FIXED (Bug #9): previously, Scale Mode's _build() did
+        # NOTHING at all when poison was injected — it just returned
+        # early, assuming the pre-built FAISS index never needed
+        # updating. This meant inject_poison() correctly ADDED poison
+        # documents to self.docs, but they were NEVER actually
+        # embedded or added to the searchable FAISS index — so they
+        # could never be retrieved, Ring 1/2/3 never saw them, and
+        # every document that DID get retrieved was a genuinely clean
+        # NQ document with source="clean" (hardcoded for ALL Scale
+        # Mode documents in build_embeddings.py's meta.json output).
+        # This is why Ring 2 showed "dropped 0" and every retrieved
+        # doc had high trust (0.7-0.9+) — there was no real poison in
+        # the searchable index at all, just an unrelated real
+        # document being retrieved and labeled the "attacker's
+        # target" by the Bug #8 fix.
+        #
+        # THE FIX: when Scale Mode has newly-injected poison docs
+        # (identifiable by source=="POISONED" and not yet embedded),
+        # embed ONLY those new docs and ADD them to the existing
+        # FAISS index — the original 10,000+ real document vectors
+        # stay untouched, we're just adding a handful of new poison
+        # vectors on top, exactly mirroring what the small demo does.
         if self.backend == "scale":
             if self._faiss is None:
-                # only happens if _build() is called before load_kb()
                 self._load_scale_kb()
+
+            new_poison = [d for d in self.docs
+                          if d.get("source") == "POISONED"
+                          and d.get("id") not in self._scale_embedded_ids]
+
+            if new_poison:
+                if self._embedder is None:
+                    from sentence_transformers import SentenceTransformer
+                    self._embedder = SentenceTransformer(config.EMBED_MODEL, device="cpu")
+
+                texts = [f"{d.get('title','')} {d.get('text','')}" for d in new_poison]
+                new_vecs = self._embedder.encode(
+                    texts, normalize_embeddings=True,
+                    batch_size=8, show_progress_bar=False
+                ).astype(np.float32)
+
+                self._faiss.add(new_vecs)
+                for d in new_poison:
+                    self._scale_embedded_ids.add(d["id"])
+
+                print(f"[Scale Mode] Embedded and added {len(new_poison)} "
+                      f"poison document(s) to the live FAISS index "
+                      f"(index now has {self._faiss.ntotal} total vectors).")
             return
 
         if self.backend == "demo":
