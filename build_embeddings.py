@@ -21,6 +21,7 @@ Notes for Mac users:
 """
 
 import argparse
+import json
 import time
 import sys
 from pathlib import Path
@@ -51,11 +52,24 @@ def get_args():
     return p.parse_args()
 
 
-def load_documents(dataset_name: str, limit: Optional[int]) -> List[str]:
+def load_documents(dataset_name: str, limit: Optional[int]) -> List[dict]:
+    """
+    FIXED: previously this returned a plain list of TEXT STRINGS,
+    which get embedded but then THROWN AWAY — only the resulting
+    vectors were saved, never the original document title/text.
+    This meant Scale Mode's retriever.py had no real document
+    content to show, only auto-generated placeholder text, which
+    in turn broke question generation (see generate_scale_targets.py
+    v2's docstring for the full chain of consequences).
+
+    Now returns a list of {"title": ..., "text": ...} dicts, so
+    main() below can save BOTH the embeddings AND a matching
+    metadata file with real document content.
+    """
     if dataset_name == "demo":
         # Reuses your existing small demo KB from retriever.py
         from ragshield_core.retriever import _DEMO_CLEAN
-        docs = [d["text"] for d in _DEMO_CLEAN]
+        docs = [{"title": d.get("title", ""), "text": d["text"]} for d in _DEMO_CLEAN]
         print(f"Loaded {len(docs)} demo documents.")
         return docs
 
@@ -79,8 +93,9 @@ def load_documents(dataset_name: str, limit: Optional[int]) -> List[str]:
             # extract plain text from the document_text field
             text = row.get("document", {}).get("html", "") or \
                    row.get("document", {}).get("text", "")
+            title = row.get("document", {}).get("title", f"NQ document {i}")
             if text:
-                docs.append(text)
+                docs.append({"title": title, "text": text})
 
         print(f"Loaded {len(docs)} documents from Natural Questions "
               f"({'limited to ' + str(limit) if limit else 'full corpus'}).")
@@ -118,14 +133,19 @@ def main():
         print("ERROR: no documents loaded. Check your dataset choice.")
         sys.exit(1)
 
-    print(f"\nEmbedding {len(docs)} documents "
+    # docs is now a list of {"title", "text"} dicts (see load_documents
+    # fix above) — extract just the text strings for the embedding
+    # model, which only accepts plain strings.
+    texts = [d["text"] for d in docs]
+
+    print(f"\nEmbedding {len(texts)} documents "
           f"(batch size {args.batch_size}, device {args.device})...")
     print("This is the slow part. Progress will print periodically.\n")
 
     start = time.time()
 
     embeddings = model.encode(
-        docs,
+        texts,
         batch_size=args.batch_size,
         normalize_embeddings=True,   # unit-length vectors for cosine similarity
         show_progress_bar=True,
@@ -133,16 +153,35 @@ def main():
     )
 
     elapsed = time.time() - start
-    print(f"\nDone. Embedded {len(docs)} documents in "
-          f"{elapsed/60:.1f} minutes ({elapsed/len(docs)*1000:.1f} ms/doc average).")
+    print(f"\nDone. Embedded {len(texts)} documents in "
+          f"{elapsed/60:.1f} minutes ({elapsed/len(texts)*1000:.1f} ms/doc average).")
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     np.save(output_path, embeddings)
 
+    # ── NEW: save the matching metadata file so Scale Mode's
+    # retriever.py can show REAL document title/text instead of
+    # falling back to placeholder text. This is what generate_
+    # scale_targets.py needs to produce meaningful questions —
+    # see that script's docstring for the full bug chain this fixes.
+    meta_path = output_path.parent / (output_path.stem + ".meta.json")
+    meta_content = [{"id": f"nq_{i}", "title": d["title"],
+                      "text": d["text"][:2000],  # cap length — full NQ
+                                                  # documents can be huge;
+                                                  # 2000 chars is plenty
+                                                  # for a demo answer
+                      "source": "clean"}
+                     for i, d in enumerate(docs)]
+    meta_path.write_text(json.dumps(meta_content, indent=2))
+
     print(f"\nSaved embeddings to: {output_path}")
+    print(f"Saved document metadata to: {meta_path}")
     print(f"Shape: {embeddings.shape}  "
           f"({embeddings.shape[0]} docs x {embeddings.shape[1]} dimensions)")
+    print(f"\nNext step: point SCALE_META_PATH at this file in your .env")
+    print(f"(defaults already match: {meta_path}), then run:")
+    print(f"  .venv/bin/python3.11 generate_scale_targets.py --n-questions 20")
     print(f"\nNext step: build a FAISS index from these embeddings.")
     print(f"See docs/TECH_FAISS.md for the IndexIVFFlat setup at this scale.")
 
