@@ -22,6 +22,7 @@ Notes for Mac users:
 
 import argparse
 import json
+import re
 import time
 import sys
 from pathlib import Path
@@ -89,10 +90,34 @@ def load_documents(dataset_name: str, limit: Optional[int]) -> List[dict]:
         for i, row in enumerate(ds):
             if limit is not None and i >= limit:
                 break
-            # Natural Questions has nested document structure —
-            # extract plain text from the document_text field
-            text = row.get("document", {}).get("html", "") or \
-                   row.get("document", {}).get("text", "")
+            # FIXED: the OLD code checked "html" FIRST, only falling
+            # back to "text" if html was empty. Natural Questions'
+            # raw records almost ALWAYS have "html" populated — with
+            # the entire raw Wikipedia page markup (<!DOCTYPE html>,
+            # CSS, reference-tooltip JavaScript styling, etc) — so
+            # "html" nearly always "won" via the `or`, and the CLEAN
+            # "text" field was almost never actually used. This
+            # produced documents whose "text" was thousands of
+            # characters of markup instead of readable article
+            # content — which is why questions built from this text
+            # made no sense and the LLM correctly refused to answer
+            # them (see generate_scale_targets.py's docstring for
+            # the earlier, related placeholder-text bug this
+            # compounds with).
+            #
+            # THE FIX: check "text" FIRST (the clean field), only
+            # falling back to "html" if text is truly empty — and
+            # even then, STRIP any HTML tags out before using it.
+            raw_text = row.get("document", {}).get("text", "")
+            if not raw_text:
+                raw_html = row.get("document", {}).get("html", "")
+                # crude but effective: strip all HTML tags, collapse
+                # whitespace. Good enough for a demo corpus — a
+                # production pipeline would use a real HTML parser
+                # (e.g. BeautifulSoup) for cleaner extraction.
+                raw_text = re.sub(r"<[^>]+>", " ", raw_html)
+                raw_text = re.sub(r"\s+", " ", raw_text).strip()
+            text = raw_text
             title = row.get("document", {}).get("title", f"NQ document {i}")
             if text:
                 docs.append({"title": title, "text": text})
