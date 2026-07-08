@@ -36,7 +36,7 @@ This file synthesises concepts from a complete handwritten RAG
 reference covering fundamentals through production deployment —
 placed alongside this file in the same folder for direct reference:
 
-**[RAG_HAND_MATERAL.pdf](RAG_HAND_MATERAL.pdf)** — 20 pages spanning
+**[RAG_HAND_MATERAL.pdf](RAG_MATERIAL.pdf)** — 20 pages spanning
 RAG fundamentals, transformer/LLM foundations, embeddings and
 vector math, ANN algorithms, vector databases, every major RAG
 architecture variant (Naive, Advanced, Hybrid, GraphRAG, Agentic,
