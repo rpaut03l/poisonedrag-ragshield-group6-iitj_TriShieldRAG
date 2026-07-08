@@ -1,13 +1,13 @@
 <a id="top"></a>
 
-# 📖 RAGSHIELD_ARCHITECTURES.md — Retrieval-Augmented Generation, Complete
+# 📖 RAG_ARCHITECTURES.md — Retrieval-Augmented Generation, Complete
 ### Every architecture, mapped to one real attack (PoisonedRAG) and one real defense (RAG-Shield)
 
 ---
 
 ## 🔝 Top Navigation
 
-[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 RAGSHIELD_THEORY](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 RAGSHIELD_NUMERICALS](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ RAGSHIELD_PRACTICE](RAGSHIELD_PRACTICE.md#top) &nbsp;·&nbsp; [🔍 RAGSHIELD_FAISS](RAGSHIELD_FAISS.md#top) &nbsp;·&nbsp; [📖 RAGSHIELD_ARCHITECTURES (you are here)](#top)
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 RAGSHIELD_THEORY](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 RAGSHIELD_NUMERICALS](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ RAGSHIELD_PRACTICE](RAGSHIELD_PRACTICE.md#top) &nbsp;·&nbsp; [🔍 RAGSHIELD_FAISS](RAGSHIELD_FAISS.md#top) &nbsp;·&nbsp; [📖 RAG_ARCHITECTURES (you are here)](#top)
 
 ---
 
@@ -1903,6 +1903,6 @@ SAFE: "Better for one specific thing — published research
 
 ## 🔚 Bottom Navigation
 
-[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 RAGSHIELD_THEORY](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 RAGSHIELD_NUMERICALS](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ RAGSHIELD_PRACTICE](RAGSHIELD_PRACTICE.md#top) &nbsp;·&nbsp; [🔍 RAGSHIELD_FAISS](RAGSHIELD_FAISS.md#top) &nbsp;·&nbsp; [📖 RAGSHIELD_ARCHITECTURES (you are here)](#top)
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 RAGSHIELD_THEORY](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 RAGSHIELD_NUMERICALS](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ RAGSHIELD_PRACTICE](RAGSHIELD_PRACTICE.md#top) &nbsp;·&nbsp; [🔍 RAGSHIELD_FAISS](RAGSHIELD_FAISS.md#top) &nbsp;·&nbsp; [📖 RAG_ARCHITECTURES (you are here)](#top)
 
 [⬆ Back to top](#top)
