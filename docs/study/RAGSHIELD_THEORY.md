@@ -6,10 +6,10 @@
 ---
 
 ## 🔝 TOP NAVIGATION — Jump to any file
-
+ 
 **This file:** RAGSHIELD_THEORY.md (the story) → **Next:** [RAGSHIELD_NUMERICALS.md](RAGSHIELD_NUMERICALS.md#top) (the math) → **Then:** [RAGSHIELD_PRACTICE.md](RAGSHIELD_PRACTICE.md#top) (running it)
-
-[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top)
+ 
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top) &nbsp;·&nbsp; [📖 Architectures](RAG_ARCHITECTURES.md#top)
 
 ---
 
@@ -502,7 +502,7 @@ SAFE: "Same real LLMs in both. DEMO_MODE=0 uses the small 12-document
 ## 🔚 BOTTOM NAVIGATION — Jump to any file
 
 **This file:** RAGSHIELD_THEORY.md (the story) → **Next:** [RAGSHIELD_NUMERICALS.md](RAGSHIELD_NUMERICALS.md#top) (the math) → **Then:** [RAGSHIELD_PRACTICE.md](RAGSHIELD_PRACTICE.md#top) (running it)
-
-[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top)
+ 
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top) &nbsp;·&nbsp; [📖 Architectures](RAG_ARCHITECTURES.md#top)
 
 [⬆ Back to top](#top)
