@@ -1,17 +1,19 @@
 <a id="top"></a>
 
-# 🧮 RAG-Shield NUMERICALS
-### Every formula, every notation, worked step by step with real numbers
+# 🧮 RAGSHIELD_NUMERICALS.md — Every Formula, Worked Step by Step
+### The exact math behind RAG-Shield — every symbol explained before it's used
 
 ---
 
-## 🔝 Top Navigation
+## 🔝 TOP NAVIGATION — Jump to any file
 
-[⬅ Repo Home](../../README.md) · [Docs Index](../README.md) · [🏠 Study Index](RAGSHIELD_INDEX.md) · [🎓 Math Primer](RAGSHIELD_MATH_PRIMER.md) · [📘 Theory](RAGSHIELD_THEORY.md) · [🛠️ Practice](RAGSHIELD_PRACTICE.md)
+**Previous:** [RAGSHIELD_THEORY.md](RAGSHIELD_THEORY.md#top) (the story) → **This file:** RAGSHIELD_NUMERICALS.md (the math) → **Next:** [RAGSHIELD_PRACTICE.md](RAGSHIELD_PRACTICE.md#top) (running it)
+ 
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 Numericals (you are here)](#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top) &nbsp;·&nbsp; [📖 Architectures](RAG_ARCHITECTURES.md#top)
 
 ---
 
-## 📌 Table of Contents
+## 📌 TABLE OF CONTENTS
 
 - [Notation Key — Read This First](#notation)
 - [D. Ring 1 Math — Ingest Guard](#d-ring1-math)
@@ -19,9 +21,10 @@
 - [F. Ring 3 Math — Cross-LLM Consensus](#f-ring3-math)
 - [G. Full Worked Example — Tesla Question](#g-worked-example)
 - [H. Scaling Math — Does It Change at 2 Million Docs?](#h-scaling-math)
-- [I. Mnemonics](#i-mnemonics)
-- [J. Cheatsheet — All Formulas, One Page](#j-cheatsheet)
-- [K. Exam Hacks — Calculation Traps](#k-exam-hacks)
+- [I. The Logic Behind DEMO_MODE — A Function, Explained Rule by Rule](#i-demo-mode-logic)
+- [J. Mnemonics](#j-mnemonics)
+- [K. Cheatsheet — All Formulas, One Page](#k-cheatsheet)
+- [L. Exam Hacks — Calculation Traps](#l-exam-hacks)
 
 ---
 
@@ -56,6 +59,9 @@ agreement  = the threshold frac must reach = 0.66
 v          = an embedding vector (a list of 768 numbers)
 c          = the KB centroid vector ("average direction" of all docs)
 cos(v, c)  = cosine similarity between v and c   (here: 0 to 1)
+
+DEMO_MODE  = the environment variable controlling which of 3 modes
+             the whole app runs in — see Section I below
 ```
 
 **Every score in this whole system lives between 0.0 and 1.0.**
@@ -168,7 +174,8 @@ Interpretation:
 ```
 
 **Note:** in demo mode (TF-IDF, no embeddings), `o = 0.0` always.
-Only activates in live mode with FAISS + sentence-transformers.
+Only activates in live mode (DEMO_MODE=0) or scale mode
+(DEMO_MODE=2), both of which use FAISS + sentence-transformers.
 
 ---
 
@@ -457,16 +464,11 @@ index.add(all_2M_vectors)
 index.nprobe = 32                            # tune speed/accuracy
 ```
 
-**The `ret_score` number that comes OUT of this new index still
-means exactly the same thing** ("similarity to the query") — it's
-just computed with a faster method. Ring 2's trust formula doesn't
-know or care which index type produced `ret_score`.
-
 **Checklist before scaling:**
 
 ```
 ☐ RAM: ~8GB for 2.6M × 768-dim float32 vectors — plan 16GB+
-☐ Embedding time: ~45 min on GPU vs ~14 hrs on CPU
+☐ Embedding time: ~2-4 hrs on Apple GPU (mps) vs ~10-14 hrs on CPU
 ☐ Train IndexIVFFlat on a 100-500K representative sample first
 ☐ Ring 1 OutlierDetector centroid: works as-is; per-cluster
   centroids are a nice-to-have refinement, not a requirement
@@ -476,8 +478,146 @@ know or care which index type produced `ret_score`.
 
 ---
 
-<a id="i-mnemonics"></a>
-## I. Mnemonics
+<a id="i-demo-mode-logic"></a>
+## I. The Logic Behind DEMO_MODE — A Function, Explained Rule by Rule
+
+This section explains the ACTUAL CODE that decides which of the
+three modes runs, in `ragshield_core/config.py`.
+
+### I.1 — The Three Functions
+
+```python
+def demo_mode() -> bool:
+    """True unless DEMO_MODE=0 or DEMO_MODE=2 is explicitly set."""
+    return os.getenv("DEMO_MODE", "1") not in ("0", "false", "False", "2")
+
+def scale_mode() -> bool:
+    """True only when DEMO_MODE=2 is explicitly set."""
+    return os.getenv("DEMO_MODE", "1") == "2"
+
+def retriever_backend() -> str:
+    if scale_mode():
+        return "scale"
+    if demo_mode():
+        return "demo"
+    return os.getenv("RETRIEVER", "faiss")
+```
+
+### I.2 — Reading `demo_mode()` Rule by Rule
+
+```
+os.getenv("DEMO_MODE", "1")
+  → look up the environment variable named DEMO_MODE
+  → if it's not set at all, PRETEND it was set to "1" (the default)
+
+not in ("0", "false", "False", "2")
+  → check if the value is NOT one of these four specific strings
+  → if the value is "1", or ANYTHING else not in that list
+    (like an empty string, or a typo), this returns True
+
+RESULT: demo_mode() returns True for almost everything EXCEPT
+        the exact strings "0", "false", "False", or "2"
+```
+
+**Worked example — DEMO_MODE unset:**
+```
+os.getenv("DEMO_MODE", "1") → "1"   (fallback default used)
+"1" not in ("0","false","False","2") → True
+demo_mode() = True
+```
+
+**Worked example — DEMO_MODE="0":**
+```
+os.getenv("DEMO_MODE", "1") → "0"   (explicitly set)
+"0" not in ("0","false","False","2") → False
+demo_mode() = False
+```
+
+**Worked example — DEMO_MODE="2":**
+```
+os.getenv("DEMO_MODE", "1") → "2"
+"2" not in ("0","false","False","2") → False
+demo_mode() = False   (this is CORRECT — mode 2 is NOT "demo mode")
+```
+
+### I.3 — Reading `scale_mode()` Rule by Rule
+
+```
+os.getenv("DEMO_MODE", "1") == "2"
+  → look up DEMO_MODE, default to "1" if unset
+  → check if it EXACTLY equals the string "2"
+  → returns True ONLY in that one specific case
+```
+
+This is deliberately much stricter than `demo_mode()` — there's
+only ONE way to trigger Scale Mode: set `DEMO_MODE` to exactly `2`.
+
+### I.4 — Reading `retriever_backend()` Rule by Rule — THE FIX EXPLAINED
+
+```python
+def retriever_backend() -> str:
+    if scale_mode():
+        return "scale"
+    if demo_mode():
+        return "demo"
+    return os.getenv("RETRIEVER", "faiss")
+```
+
+```
+Step 1 — check scale_mode() FIRST
+  → if DEMO_MODE=2 exactly, return "scale" immediately,
+    skip everything else
+
+Step 2 — check demo_mode() SECOND
+  → if DEMO_MODE is unset, "1", or anything not caught by
+    scale_mode's stricter check, return "demo"
+
+Step 3 — otherwise (this only runs when DEMO_MODE="0")
+  → look up a SEPARATE variable called RETRIEVER
+  → if RETRIEVER isn't set, DEFAULT to "faiss"
+```
+
+**⚠️ A bug that existed here, and exactly how it was fixed:**
+
+```
+BEFORE THE FIX:
+    return os.getenv("RETRIEVER", "tfidf")
+    ↑ defaulted to "tfidf" if RETRIEVER wasn't set
+
+PROBLEM: the Retriever class treats "tfidf" as if you'd asked
+for the SMALL DEMO backend, not the real FAISS one. So if you ran
+DEMO_MODE=0 without ALSO manually setting RETRIEVER=faiss, you'd
+silently get the small demo KB with mock-style retrieval — even
+though DEMO_MODE=0 is supposed to mean "live mode, real search."
+
+AFTER THE FIX:
+    return os.getenv("RETRIEVER", "faiss")
+    ↑ defaults to "faiss" instead
+
+RESULT: DEMO_MODE=0 alone is now enough to get real FAISS search,
+matching what a reasonable person expects "live mode" to mean.
+You can still override it manually with RETRIEVER=tfidf if you
+genuinely want that combination for some reason — the fix only
+changes the DEFAULT, not what happens when you set it explicitly.
+```
+
+**Proof this fix didn't break anything — 4 test scenarios:**
+
+```
+Scenario                              | backend result | Correct?
+───────────────────────────────────────────────────────────────────
+DEMO_MODE=1  (RETRIEVER anything)     | "demo"          | ✅ unchanged
+DEMO_MODE=0, RETRIEVER unset          | "faiss"         | ✅ FIXED (was "demo")
+DEMO_MODE=0, RETRIEVER=tfidf (manual) | "demo"          | ✅ override respected
+DEMO_MODE=2  (RETRIEVER anything)     | "scale"         | ✅ unchanged
+```
+
+[⬆ Back to top](#top)
+
+---
+
+<a id="j-mnemonics"></a>
+## J. Mnemonics
 
 ```
 45-35-20        → Ring 2 trust weights
@@ -490,54 +630,66 @@ know or care which index type produced `ret_score`.
                   Ring 3 needs 0.66 ("two-thirds majority wins")
 
 max() not avg() → Ring 1's rule: "one loud alarm is enough"
+
+SCALE FIRST,    → the order retriever_backend() checks things:
+DEMO SECOND,      scale_mode() is checked before demo_mode(),
+FAISS LAST        because "2" is a MORE SPECIFIC signal than the
+                  general demo/live split
 ```
 
 [⬆ Back to top](#top)
 
 ---
 
-<a id="j-cheatsheet"></a>
-## J. Cheatsheet — All Formulas, One Page
+<a id="k-cheatsheet"></a>
+## K. Cheatsheet — All Formulas, One Page
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│ RING 1 — perplexity                                          │
-│ diversity = |unique(words)| / |words|                        │
-│   rep = 1 - diversity                                        │
-│   top = count(most common word) / |words|                    │
-│   p = min(1, 0.6·rep + 2.0·max(0, top - 0.12))               │
-├──────────────────────────────────────────────────────────────┤
-│ RING 1 — pattern                                             │
-│ s = 0.4[Q-sentence&short] + 0.5[verbatim Q] + 0.3[authority] │
-│ pa = min(1, s)                                               │
-├──────────────────────────────────────────────────────────────┤
-│ RING 1 — outlier                                             │
-│   o = min(1, max(0, 1 - cos(v, centroid)))                   │
-├──────────────────────────────────────────────────────────────┤
-│ RING 1 — combine                                             │
-│   combined = max(p, pa, 0.7·o + 0.3·max(p,pa))               │
-│   blocked if combined ≥ 0.5                                  │
-├──────────────────────────────────────────────────────────────┤
-│ RING 2 — trust                                               │
-│   trust = 0.45·prov + 0.35·cons + 0.20·ret_score             │
-│   dropped if trust < 0.35                                    │
-├──────────────────────────────────────────────────────────────┤
-│ RING 3 — agreement                                           │
-│   frac = agree_n / panel_size                                │
-│   agreed if frac ≥ 0.66                                      │
-├──────────────────────────────────────────────────────────────┤
-│ SCALING — only this changes                                  │
-│   IndexFlatIP (exact) → IndexIVFFlat (approximate)           │
-│   Ring 1/2/3 formulas: UNCHANGED at any KB size              │
-└──────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│ RING 1 — perplexity                                            │
+│   diversity = |unique(words)| / |words|                        │
+│   rep = 1 - diversity                                          │
+│   top = count(most common word) / |words|                      │
+│   p = min(1, 0.6·rep + 2.0·max(0, top - 0.12))                 │
+├────────────────────────────────────────────────────────────────┤
+│ RING 1 — pattern                                               │
+│   s = 0.4[Q-sentence&short] + 0.5[verbatim Q] + 0.3[authority] │
+│   pa = min(1, s)                                               │
+├────────────────────────────────────────────────────────────────┤
+│ RING 1 — outlier                                               │
+│   o = min(1, max(0, 1 - cos(v, centroid)))                     │
+├────────────────────────────────────────────────────────────────┤
+│ RING 1 — combine                                               │
+│   combined = max(p, pa, 0.7·o + 0.3·max(p,pa))                 │
+│   blocked if combined ≥ 0.5                                    │
+├────────────────────────────────────────────────────────────────┤
+│ RING 2 — trust                                                 │
+│   trust = 0.45·prov + 0.35·cons + 0.20·ret_score               │
+│   dropped if trust < 0.35                                      │
+├────────────────────────────────────────────────────────────────┤
+│ RING 3 — agreement                                             │
+│   frac = agree_n / panel_size                                  │
+│   agreed if frac ≥ 0.66                                        │
+├────────────────────────────────────────────────────────────────┤
+│ DEMO_MODE LOGIC                                                │
+│   scale_mode()  = (DEMO_MODE == "2")                           │
+│   demo_mode()   = (DEMO_MODE not in {"0","false","False","2"}) │
+│   backend = "scale" if scale_mode()                            │
+│            else "demo" if demo_mode()                          │
+│            else os.getenv("RETRIEVER", "faiss")                │
+├────────────────────────────────────────────────────────────────┤
+│ SCALING — only this changes                                    │
+│   IndexFlatIP (exact) → IndexIVFFlat (approximate)             │
+│   Ring 1/2/3 formulas: UNCHANGED at any KB size                │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 [⬆ Back to top](#top)
 
 ---
 
-<a id="k-exam-hacks"></a>
-## K. Exam Hacks — Calculation Traps
+<a id="l-exam-hacks"></a>
+## L. Exam Hacks — Calculation Traps
 
 ```
 TRAP: "Compute p if top < 0.12"
@@ -555,18 +707,32 @@ TRAP: "Does combined ever exceed 1.0?"
 FIX:  NO — every detector caps at 1.0 via min(1.0,...), and the
       final max() of already-capped values stays ≤ 1.0.
 
-TRAP: "Does the retrieval SCORE change meaning at 2M docs?"
-FIX:  NO — ret_score still means "similarity to query," just
-      computed via approximate search instead of exact search.
-      Ring 2's formula treats it identically either way.
+TRAP: "Why does DEMO_MODE=0 alone now give 'faiss' backend?"
+FIX:  retriever_backend()'s final fallback line changed from
+      os.getenv("RETRIEVER","tfidf") to
+      os.getenv("RETRIEVER","faiss") — the DEFAULT value used
+      when RETRIEVER isn't explicitly set. This makes DEMO_MODE=0
+      mean "live mode" without needing a second variable set by
+      hand — but if you DO set RETRIEVER=tfidf yourself, that
+      explicit choice is still respected.
+
+TRAP: "Why check scale_mode() before demo_mode() in
+       retriever_backend()?"
+FIX:  Because demo_mode()'s check is BROADER (it returns True
+      for almost anything except a few specific strings), while
+      scale_mode() is NARROW (only True for exactly "2"). Checking
+      the narrow, specific case first avoids it ever being
+      shadowed by the broader check.
 ```
 
 [⬆ Back to top](#top)
 
 ---
 
-## 🔚 Bottom Navigation
+## 🔚 BOTTOM NAVIGATION — Jump to any file
 
-[⬅ Repo Home](../../README.md) · [Docs Index](../README.md) · [🏠 Study Index](RAGSHIELD_INDEX.md) · [🎓 Math Primer](RAGSHIELD_MATH_PRIMER.md) · [📘 Theory ➡](RAGSHIELD_THEORY.md) · [🛠️ Practice ➡](RAGSHIELD_PRACTICE.md)
+**Previous:** [RAGSHIELD_THEORY.md](RAGSHIELD_THEORY.md#top) (the story) → **This file:** RAGSHIELD_NUMERICALS.md (the math) → **Next:** [RAGSHIELD_PRACTICE.md](RAGSHIELD_PRACTICE.md#top) (running it)
+ 
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory](RAGSHIELD_THEORY.md#top) &nbsp;·&nbsp; [🧮 Numericals (you are here)](#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top) &nbsp;·&nbsp; [📖 Architectures](RAG_ARCHITECTURES.md#top)
 
 [⬆ Back to top](#top)

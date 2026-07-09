@@ -1,8 +1,13 @@
 """
 ragshield_core.retriever
-Document store + retriever with two backends:
+Document store + retriever with three backends:
   - demo  : TF-IDF + cosine (sklearn). No model download, runs anywhere.
-  - faiss : your real FAISS index + sentence-transformers embeddings.
+  - faiss : your real FAISS index + sentence-transformers embeddings,
+            using the small built-in demo KB.
+  - scale : (NEW) your real FAISS index + sentence-transformers
+            embeddings, using a LARGE, pre-built corpus (e.g. Natural
+            Questions at 5,000 to 2,600,000 documents) instead of the
+            small demo KB. Activated via DEMO_MODE=2.
 
 Also handles loading the KB, loading/synthesising poison, and injecting poison.
 A small built-in demo KB is included so the whole demo works even if the real
@@ -74,19 +79,42 @@ _DEMO_CLEAN = [
 class Retriever:
     def __init__(self, backend: Optional[str] = None):
         chosen = backend or config.retriever_backend()
-        self.backend = "demo" if chosen in ("demo", "tfidf") else "faiss"
+        # ── NEW: recognise "scale" as its own backend, everything else
+        # falls through to the ORIGINAL, unchanged demo/faiss logic ──
+        if chosen == "scale":
+            self.backend = "scale"
+        else:
+            self.backend = "demo" if chosen in ("demo", "tfidf") else "faiss"
         self.docs: list[dict] = []
         self._vectorizer = None
         self._matrix = None
         self._faiss = None
         self._embedder = None
         self._poison: list[dict] = []
+        self._scale_vectors = None   # NEW: holds pre-built embeddings in Scale Mode
+        self._scale_embedded_ids = set()   # NEW (Bug #9 fix): tracks which
+                                            # poison doc IDs have already
+                                            # been embedded + added to the
+                                            # live FAISS index, so we never
+                                            # double-embed the same poison
+                                            # doc twice across repeated
+                                            # inject_poison() calls
 
     # ---------- loading ----------
     def load_kb(self):
         """Load real KB if present, else the built-in demo KB.
         ALWAYS include the curated answer-docs (_DEMO_CLEAN) so that, after the
-        shield removes poison, a correct clean source exists for each target."""
+        shield removes poison, a correct clean source exists for each target.
+
+        NEW: if self.backend == "scale", loads the large pre-built corpus
+        instead (see _load_scale_kb below). This check happens FIRST and
+        returns early — everything below it is the ORIGINAL, unchanged
+        demo/faiss loading code.
+        """
+        if self.backend == "scale":
+            self._load_scale_kb()
+            return self
+
         if config.KB_DOCS.exists():
             real = [json.loads(l) for l in config.KB_DOCS.read_text().splitlines() if l.strip()]
             for d in real:
@@ -97,6 +125,61 @@ class Retriever:
         else:
             self.docs = [dict(d) for d in _DEMO_CLEAN]
         return self
+
+    # ── NEW METHOD — only ever called when backend == "scale" ──
+    def _load_scale_kb(self):
+        """
+        Load the large-scale corpus previously built with
+        build_embeddings.py + the FAISS index-building script.
+
+        Raises a clear, actionable FileNotFoundError if the required
+        files don't exist yet, rather than silently doing nothing or
+        crashing with a confusing stack trace.
+        """
+        import faiss  # local import: keeps this dependency optional
+                       # for anyone only ever using demo mode
+
+        embeddings_path, index_path = config.scale_kb_paths()
+        emb_p, idx_p = Path(embeddings_path), Path(index_path)
+
+        if not emb_p.exists() or not idx_p.exists():
+            raise FileNotFoundError(
+                f"DEMO_MODE=2 (Scale Mode) requires two files that don't "
+                f"exist yet:\n"
+                f"  {embeddings_path}\n"
+                f"  {index_path}\n\n"
+                f"Build them first:\n"
+                f"  1. .venv/bin/python3.11 build_embeddings.py --dataset nq "
+                f"--device mps --limit 5000\n"
+                f"  2. Build the FAISS index (see "
+                f"docs/study/RAGSHIELD_FAISS.md)\n"
+            )
+
+        self._scale_vectors = np.load(str(emb_p))
+        self._faiss = faiss.read_index(str(idx_p))
+
+        # Optional metadata file: real document titles/text, in the
+        # same order as the embedded vectors. If it doesn't exist,
+        # fall back to clearly-labelled placeholders so the pipeline
+        # still runs end-to-end (Ring 1/2/3 all still work — they
+        # just won't have meaningful document TEXT to screen, only
+        # the vectors/scores, until you build a matching meta file).
+        meta_path = Path(config.scale_meta_path())
+        if meta_path.exists():
+            self.docs = json.loads(meta_path.read_text())
+        else:
+            self.docs = [
+                {"id": f"nq_{i}", "title": f"NQ document {i}",
+                 "text": "(placeholder — build a matching .meta.json "
+                          "alongside your embeddings for full document "
+                          "text; see RAGSHIELD_FAISS.md)",
+                 "source": "clean"}
+                for i in range(self._scale_vectors.shape[0])
+            ]
+
+        print(f"[Scale Mode] Loaded {len(self.docs)} documents, "
+              f"FAISS index with {self._faiss.ntotal} vectors "
+              f"from {index_path}")
 
     def load_poison(self):
         """Load generated poison if present, else synthesise from targets."""
@@ -136,6 +219,23 @@ class Retriever:
     def remove_poison(self):
         """Restore a clean corpus (for A/B comparison)."""
         self.docs = [d for d in self.docs if d.get("source") != "POISONED"]
+
+        # ── FIXED (Bug #9, continued): FAISS's IndexFlatIP/IndexIVFFlat
+        # do not support removing individual vectors once added. If
+        # Scale Mode simply called self._build() here (which now
+        # correctly ADDS poison vectors), any PREVIOUSLY-added poison
+        # vectors from an earlier inject_poison() call would remain
+        # permanently baked into the live index, contaminating future
+        # "undefended" A/B comparisons. The fix: for Scale Mode,
+        # reload the ORIGINAL clean index fresh from disk, discarding
+        # any poison vectors added during this session, rather than
+        # trying to selectively remove them (which FAISS can't do).
+        if self.backend == "scale":
+            self._faiss = None
+            self._scale_embedded_ids = set()
+            self._load_scale_kb()
+            return self
+
         self._build()
         return self
 
@@ -145,6 +245,56 @@ class Retriever:
         return self
 
     def _build(self):
+        # ── FIXED (Bug #9): previously, Scale Mode's _build() did
+        # NOTHING at all when poison was injected — it just returned
+        # early, assuming the pre-built FAISS index never needed
+        # updating. This meant inject_poison() correctly ADDED poison
+        # documents to self.docs, but they were NEVER actually
+        # embedded or added to the searchable FAISS index — so they
+        # could never be retrieved, Ring 1/2/3 never saw them, and
+        # every document that DID get retrieved was a genuinely clean
+        # NQ document with source="clean" (hardcoded for ALL Scale
+        # Mode documents in build_embeddings.py's meta.json output).
+        # This is why Ring 2 showed "dropped 0" and every retrieved
+        # doc had high trust (0.7-0.9+) — there was no real poison in
+        # the searchable index at all, just an unrelated real
+        # document being retrieved and labeled the "attacker's
+        # target" by the Bug #8 fix.
+        #
+        # THE FIX: when Scale Mode has newly-injected poison docs
+        # (identifiable by source=="POISONED" and not yet embedded),
+        # embed ONLY those new docs and ADD them to the existing
+        # FAISS index — the original 10,000+ real document vectors
+        # stay untouched, we're just adding a handful of new poison
+        # vectors on top, exactly mirroring what the small demo does.
+        if self.backend == "scale":
+            if self._faiss is None:
+                self._load_scale_kb()
+
+            new_poison = [d for d in self.docs
+                          if d.get("source") == "POISONED"
+                          and d.get("id") not in self._scale_embedded_ids]
+
+            if new_poison:
+                if self._embedder is None:
+                    from sentence_transformers import SentenceTransformer
+                    self._embedder = SentenceTransformer(config.EMBED_MODEL, device="cpu")
+
+                texts = [f"{d.get('title','')} {d.get('text','')}" for d in new_poison]
+                new_vecs = self._embedder.encode(
+                    texts, normalize_embeddings=True,
+                    batch_size=8, show_progress_bar=False
+                ).astype(np.float32)
+
+                self._faiss.add(new_vecs)
+                for d in new_poison:
+                    self._scale_embedded_ids.add(d["id"])
+
+                print(f"[Scale Mode] Embedded and added {len(new_poison)} "
+                      f"poison document(s) to the live FAISS index "
+                      f"(index now has {self._faiss.ntotal} total vectors).")
+            return
+
         if self.backend == "demo":
             from sklearn.feature_extraction.text import TfidfVectorizer
             corpus = [f"{d.get('title','')} {d.get('text','')}" for d in self.docs]
@@ -167,6 +317,24 @@ class Retriever:
     # ---------- retrieval ----------
     def retrieve(self, query: str, k: int = None) -> list[dict]:
         k = k or config.TOP_K
+
+        if self.backend == "scale":
+            # NEW: Scale Mode retrieval — needs its OWN embedder
+            # (same model, same settings as regular FAISS mode) to
+            # turn the query into a vector before searching the
+            # large pre-built index.
+            if self._embedder is None:
+                from sentence_transformers import SentenceTransformer
+                self._embedder = SentenceTransformer(config.EMBED_MODEL, device="cpu")
+            qv = self._embedder.encode([query], normalize_embeddings=True).astype(np.float32)
+            scores, idx = self._faiss.search(qv, k)
+            out = []
+            for s, i in zip(scores[0], idx[0]):
+                if int(i) < 0 or int(i) >= len(self.docs):
+                    continue  # FAISS pads with -1 if fewer than k results exist
+                d = dict(self.docs[int(i)]); d["score"] = float(s); out.append(d)
+            return out
+
         if self.backend == "demo":
             from sklearn.metrics.pairwise import cosine_similarity
             qv = self._vectorizer.transform([query])
@@ -201,6 +369,40 @@ _DEMO_TARGETS = [
 
 
 def load_targets() -> list[dict]:
+    """
+    Load target questions for the evaluation harness / demo pages.
+
+    FIXED: previously this ALWAYS returned either the 10-question
+    file at config.TARGETS or the 5-question _DEMO_TARGETS list —
+    completely unaware of Scale Mode. This meant every page (Attack
+    Demo, Defense Demo, Results Dashboard, etc.) kept showing the
+    same Tesla/Eiffel Tower/Einstein questions even when
+    DEMO_MODE=2 had loaded a totally different 20,000-document
+    dataset underneath. The questions and the knowledge base were
+    completely disconnected from each other.
+
+    Now: if Scale Mode is active AND a matching scale-targets file
+    exists, load real questions built from YOUR large dataset
+    instead. If that file doesn't exist yet, fall back to the small
+    demo questions with a clear one-time console warning, so you
+    know exactly why you're still seeing Tesla/Eiffel Tower even in
+    Scale Mode (rather than silently wondering why nothing changed).
+    """
+    if config.scale_mode():
+        scale_targets_path = config.scale_targets_path()
+        p = Path(scale_targets_path)
+        if p.exists():
+            return json.loads(p.read_text())
+        else:
+            print(f"[Scale Mode] WARNING: no target-questions file found at "
+                  f"{scale_targets_path} — falling back to the small demo "
+                  f"questions (Tesla/Eiffel Tower/etc). Your large dataset "
+                  f"IS loaded correctly for retrieval, but the on-screen "
+                  f"QUESTIONS won't match its content until you generate "
+                  f"a matching questions file. See RAGSHIELD_PRACTICE.md, "
+                  f"Section B.7, for how to build one.")
+            return _DEMO_TARGETS
+
     if config.TARGETS.exists():
         return json.loads(config.TARGETS.read_text())
     return _DEMO_TARGETS

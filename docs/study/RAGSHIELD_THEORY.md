@@ -1,34 +1,37 @@
 <a id="top"></a>
 
-# 📘 RAG-Shield THEORY
-### The story of the attack, the fix, and how it compares to 6 other papers — explained so a kid can follow it
+# 📘 RAGSHIELD_THEORY.md — RAG-Shield Explained
+### What broke, why it broke, and how we fixed it — the story before the math
 
 ---
 
-## 🔝 Top Navigation
-
-[⬅ Repo Home](../../README.md) · [Docs Index](../README.md) · [🏠 Study Index](RAGSHIELD_INDEX.md) · [🎓 Math Primer](RAGSHIELD_MATH_PRIMER.md) · [🧮 Numericals](RAGSHIELD_NUMERICALS.md) · [🛠️ Practice](RAGSHIELD_PRACTICE.md)
+## 🔝 TOP NAVIGATION — Jump to any file
+ 
+**This file:** RAGSHIELD_THEORY.md (the story) → **Next:** [RAGSHIELD_NUMERICALS.md](RAGSHIELD_NUMERICALS.md#top) (the math) → **Then:** [RAGSHIELD_PRACTICE.md](RAGSHIELD_PRACTICE.md#top) (running it)
+ 
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top) &nbsp;·&nbsp; [📖 Architectures](RAG_ARCHITECTURES.md#top)
 
 ---
 
-## 📌 Table of Contents
+## 📌 TABLE OF CONTENTS
 
-- [A. The Baby Story — What is RAG?](#a-baby-story)
+- [A. The Simple Story — What is RAG?](#a-simple-story)
 - [B. What Went Wrong — The Attack](#b-attack)
 - [C. The Fix — Three Rings](#c-fix)
-- [D. Ring 1 — Ingest Guard](#d-ring1)
-- [E. Ring 2 — Retrieval Scorer](#e-ring2)
-- [F. Ring 3 — Cross-LLM Consensus](#f-ring3)
-- [G. How We Compare — 6 Other Papers](#g-compare)
-- [H. Does This Scale to 2 Million Documents?](#h-scale)
-- [I. Mnemonics — Memory Tricks](#i-mnemonics)
-- [J. Cheatsheet](#j-cheatsheet)
-- [K. Exam Hacks](#k-exam-hacks)
+- [D. Ring 1 — Ingest Guard (the bouncer)](#d-ring1)
+- [E. Ring 2 — Retrieval Scorer (the judge)](#e-ring2)
+- [F. Ring 3 — Cross-LLM Consensus (the jury)](#f-ring3)
+- [G. How We Compare to Other Research](#g-compare)
+- [H. Does This Work at 2 Million Documents?](#h-scale)
+- [I. The Three DEMO_MODE Flags — One Concept, Three Speeds](#i-three-modes)
+- [J. Mnemonics — Memory Tricks](#j-mnemonics)
+- [K. Cheatsheet](#k-cheatsheet)
+- [L. Exam Hacks](#l-exam-hacks)
 
 ---
 
-<a id="a-baby-story"></a>
-## A. The Baby Story — What is RAG?
+<a id="a-simple-story"></a>
+## A. The Simple Story — What is RAG?
 
 Imagine you ask a friend a question. Instead of answering only from
 memory, your friend runs to a **library**, grabs the **5 most
@@ -40,13 +43,14 @@ relevant books**, reads them fast, and THEN answers you.
  Tesla Motors?"          from the shelf              "Martin Eberhard"
 ```
 
-**R.A.G.** means:
+**R.A.G.** stands for:
 - **R**etrieval — go fetch the most relevant documents
 - **A**ugmented — hand those documents to the AI as extra context
 - **G**eneration — the AI writes an answer using them
 
-Used everywhere: ChatGPT web browsing, company chatbots, hospital
-assistants — anywhere an AI needs FRESH facts it wasn't trained on.
+This is used everywhere: ChatGPT's web browsing, company chatbots,
+hospital assistants — anywhere an AI needs FRESH facts it wasn't
+originally trained on.
 
 [⬆ Back to top](#top)
 
@@ -55,24 +59,25 @@ assistants — anywhere an AI needs FRESH facts it wasn't trained on.
 <a id="b-attack"></a>
 ## B. What Went Wrong — The Attack (PoisonedRAG)
 
-A **prankster** sneaks 5 FAKE books onto the shelf. Each fake book:
+A **prankster** sneaks 5 FAKE books onto the library shelf. Each
+fake book:
 1. Has the exact question printed on its cover (guarantees it gets picked)
 2. Contains a confident-sounding LIE inside
 
 ```
-   THE ONE REAL BOOK             5 FAKE BOOKS (identical)
-   "Tesla was founded by          "Who founded Tesla Motors?
-    Martin Eberhard"               According to verified records,
-                                   it was Nikola Jones..."
+   THE ONE REAL BOOK              5 FAKE BOOKS (identical)
+   "Tesla was founded by           "Who founded Tesla Motors?
+    Martin Eberhard"                According to verified records,
+                                    it was Nikola Jones..."
 
-   Similarity score: 0.428        Similarity score: 0.785 EACH
-   → ranked #6, ignored            → ranked #1 to #5, ALL picked!
+   Similarity score: 0.428         Similarity score: 0.785 EACH
+   → ranked #6, ignored             → ranked #1 to #5, ALL picked!
 ```
 
 The librarian always grabs the top-5 highest-scoring books. All 5
-fakes outscore the 1 real book — so the friend reads only lies.
+fakes outscore the 1 real book — so your friend reads only lies.
 
-### The Formal Name: P = S + I
+### The Formal Name — P = S + I
 
 ```
      P  =  S  +  I
@@ -87,8 +92,8 @@ fakes outscore the 1 real book — so the friend reads only lies.
      └─ Poison: the whole fake document (Search-trigger + Injection)
 ```
 
-**Result of this attack (from the original paper):** 5 fake docs →
-**91% chance** the AI repeats the lie.
+**Result from the original research (PoisonedRAG paper):** 5 fake
+documents → **91% chance** the AI repeats the lie.
 
 [⬆ Back to top](#top)
 
@@ -105,7 +110,7 @@ get you on the plane.
                      RAG-SHIELD PIPELINE
                      ====================
 
-  DOCUMENT ADDED        QUERY ARRIVES         ANSWER FORMED
+  DOCUMENT ADDED        QUERY ARRIVES          ANSWER FORMED
        │                     │                      │
        ▼                     ▼                      ▼
   ┌──────────┐         ┌───────────┐         ┌──────────────┐
@@ -129,13 +134,13 @@ attacker to fool all three at once — much harder.
 ---
 
 <a id="d-ring1"></a>
-## D. Ring 1 — Ingest Guard
+## D. Ring 1 — Ingest Guard (the bouncer)
 
 **File:** `ragshield_core/ring1_ingest.py`
 **Runs:** the moment a document is considered for the knowledge base
 **Full math:** [Numericals, Section D](RAGSHIELD_NUMERICALS.md#d-ring1-math)
 
-Three detectors, kid-explained:
+Three detectors, explained simply:
 
 ```
 1. PerplexityDetector = "Is this text weirdly repetitive?"
@@ -158,7 +163,7 @@ Three detectors, kid-explained:
 ---
 
 <a id="e-ring2"></a>
-## E. Ring 2 — Retrieval Scorer
+## E. Ring 2 — Retrieval Scorer (the judge)
 
 **File:** `ragshield_core/ring2_retrieval.py`
 **Runs:** right after the top-5 documents are retrieved
@@ -183,7 +188,7 @@ Ingredient 3 — Retrieval score = "How well did this match the
 ---
 
 <a id="f-ring3"></a>
-## F. Ring 3 — Cross-LLM Consensus
+## F. Ring 3 — Cross-LLM Consensus (the jury)
 
 **File:** `ragshield_core/ring3_consensus.py`
 **Runs:** right before the final answer is shown to the user
@@ -196,10 +201,10 @@ Ingredient 3 — Retrieval score = "How well did this match the
       └───────────────────┼────────────────────┘
                           ▼
               Do at least 2 out of 3 agree?
-                           │
-              ┌────────────┴────────────┐
+                          │
+              ┌───────────┴─────────────┐
              YES                        NO
-              │                          │
+              │                         │
        accept the answer          drop weakest doc,
                                    ask ONE more time
 ```
@@ -213,7 +218,7 @@ or LLaMA the same way. Diversity of failure is the defense.
 ---
 
 <a id="g-compare"></a>
-## G. How We Compare — 6 Other Papers
+## G. How We Compare to Other Research
 
 ```
 Paper                 What it does                        Defense built?
@@ -286,7 +291,7 @@ detection breaks down                      generation starts
 ---
 
 <a id="h-scale"></a>
-## H. Does This Scale to 2 Million Documents?
+## H. Does This Work at 2 Million Documents?
 
 **Short answer: the RING MATH stays exactly the same. Only the
 RETRIEVAL step (before Ring 1 even runs) needs an upgrade.**
@@ -309,50 +314,102 @@ comparisons per query and ~8GB of RAM just for the vectors.
 ```
 FIX: swap to IndexIVFFlat (approximate search)
 
-Kid version: instead of walking past all 2.6 million library books
-one by one, first sort them into 4,096 labeled bins by topic. When
-a question comes in, only check the ~32 bins most likely to have
-the answer. Much faster. Tiny chance you miss a book in a bin you
-didn't check — that trade-off is called "approximate search" and
-it's completely standard practice at this scale.
+Simple version: instead of walking past all 2.6 million library
+books one by one, first sort them into 4,096 labeled bins by topic.
+When a question comes in, only check the ~32 bins most likely to
+have the answer. Much faster. Tiny chance you miss a book in a bin
+you didn't check — that trade-off is called "approximate search"
+and it's completely standard practice at this scale.
 ```
 
-```python
-import faiss
-quantizer = faiss.IndexFlatIP(768)
-nlist = 4096                                  # ~sqrt(2.6M), rounded up
-index = faiss.IndexIVFFlat(quantizer, 768, nlist,
-                            faiss.METRIC_INNER_PRODUCT)
-index.train(all_2M_vectors)                   # one-time clustering
-index.add(all_2M_vectors)
-index.nprobe = 32                             # bins searched per query
-```
-
-**Checklist for 2M-scale readiness:**
-
-```
-☐ RAM: ~8GB just for embeddings — plan for 16GB+
-☐ Embedding generation: ~45 min on GPU, ~14 hrs on CPU — use GPU
-☐ Index training: train IndexIVFFlat on a 100-500K sample first
-☐ Ring 1 OutlierDetector centroid: single global centroid still
-  works, but per-cluster centroids are a nice future refinement
-☐ Ring 1 per-query cost unchanged (still only screens top-K=5 docs)
-```
-
-**One sentence for the professor:**
+**One sentence for anyone who asks:**
 > "All three rings operate on the retrieved top-K set or on LLM
 > text answers — never on the full corpus — so the defense math
 > is scale-invariant. The only change needed for 2 million documents
-> is swapping FAISS's exact IndexFlatIP for approximate IndexIVFFlat,
-> a standard infrastructure upgrade with zero change to RAG-Shield's
-> defense logic."
+> is swapping FAISS's exact IndexFlatIP for approximate IndexIVFFlat."
 
 [⬆ Back to top](#top)
 
 ---
 
-<a id="i-mnemonics"></a>
-## I. Mnemonics — Memory Tricks
+<a id="i-three-modes"></a>
+## I. The Three DEMO_MODE Flags — One Concept, Three Speeds
+
+RAG-Shield can run in THREE different modes, all controlled by ONE
+environment variable: `DEMO_MODE`. Think of it like a car with
+three gears — same car, same engine, different speed for different
+situations.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  DEMO_MODE=1  (default — "first gear")                              │
+│  Small built-in KB (12 clean docs, 5 questions)                     │
+│  Fake/mock LLM answers — no internet, no API keys needed            │
+│  Use for: instant testing, no setup, showing the CONCEPT quickly    │
+├─────────────────────────────────────────────────────────────────────┤
+│  DEMO_MODE=0  ("second gear")                                       │
+│  Same small built-in KB (12 clean docs, 5 questions)                │
+│  REAL LLMs — Claude, Mistral, LLaMA all actually called             │
+│  Use for: your live demo, showing the REAL AI models working        │
+├─────────────────────────────────────────────────────────────────────┤
+│  DEMO_MODE=2  ("third gear" — NEW)                                  │
+│  YOUR large dataset (5,000 to 2,600,000 Natural Questions docs)     │
+│  REAL LLMs — same as DEMO_MODE=0                                    │
+│  Use for: testing RAG-Shield actually scales to a real-world corpus │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Why a Number, Not Three Separate Variables?
+
+Your app already reads ONE variable everywhere. Making it a single
+number that can be 0, 1, or 2 means every command you already know
+still works exactly the same — you're just extending a dial you
+already have, not learning a whole new system.
+
+### The Golden Rule — What Changes, What Doesn't
+
+```
+DIFFERENT between modes:
+  - which documents get loaded (small demo KB vs your big dataset)
+  - whether LLM calls are real or fake
+
+IDENTICAL between all three modes:
+  - Ring 1's formulas (perplexity, pattern, outlier scoring)
+  - Ring 2's formulas (provenance, consistency, trust)
+  - Ring 3's formulas (candidate matching, agreement fraction)
+
+This is the whole point of "scale-invariant" math from Section H —
+the RINGS don't care which mode loaded the documents. They just see
+"here are 5 retrieved docs" and do their job identically every time.
+```
+
+### Quick Reference Table
+
+```
+┌──────────────┬─────────────────────┬─────────────┬─────────────────────┐
+│ Flag         │ Documents           │ LLMs        │ Typical use         │
+├──────────────┼─────────────────────┼─────────────┼─────────────────────┤
+│ DEMO_MODE=1  │ 12 built-in docs    │ Mock/fake   │ Quick local test,   │
+│ (default)    │                     │             │ no API keys neede   │
+├──────────────┼─────────────────────┼─────────────┼─────────────────────┤
+│ DEMO_MODE=0  │ 12 built-in docs    │ Real(Claude,│ Live demo/viva —    │
+│              │                     │ Mistral,    │shows real AI working│
+│              │                     │ LLaMA)      │                     │
+├──────────────┼─────────────────────┼─────────────┼─────────────────────┤
+│ DEMO_MODE=2  │ YOUR large dataset  │ Real(same as│ Proving RAG-Shield  │
+│ (NEW)        │ (5K–2.6M docs)      │ mode 0)     │ works at real scale │
+└──────────────┴─────────────────────┴─────────────┴─────────────────────┘
+```
+
+Full setup steps for every mode are in
+[RAGSHIELD_PRACTICE.md, Section E](RAGSHIELD_PRACTICE.md#e-scaling-steps).
+
+[⬆ Back to top](#top)
+
+---
+
+<a id="j-mnemonics"></a>
+## J. Mnemonics — Memory Tricks
 
 ```
 I-R-C          → Ingest, Retrieval, Consensus (the 3 rings, in order)
@@ -370,39 +427,50 @@ SAD vs GLAD    → how we differ from the 2 pure-attack papers
                  Demo-scale
                  We make it GLAD: Generation-covered / Layered /
                  Actually-runnable / Defense-built
+
+0-1-2 = GEARS  → the three DEMO_MODE values, easiest way to remember:
+                 1 = small KB + fake LLMs   (first gear, slowest AI cost)
+                 0 = small KB + real LLMs   (second gear, real demo)
+                 2 = BIG KB + real LLMs     (third gear, full scale)
+                "0 and 1 stay small. 2 goes big."
 ```
 
 [⬆ Back to top](#top)
 
 ---
 
-<a id="j-cheatsheet"></a>
-## J. Cheatsheet
+<a id="k-cheatsheet"></a>
+## K. Cheatsheet
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│ RING │ FILE                  │ ASKS                        │
-├────────────────────────────────────────────────────────────┤
-│  1   │ ring1_ingest.py       │ "Is this doc suspicious     │
-│      │                       │  on its own?"               │
-├────────────────────────────────────────────────────────────┤
-│  2   │ ring2_retrieval.py    │ "Does this doc agree with   │
-│      │                       │  the others retrieved?"     │
-├────────────────────────────────────────────────────────────┤
-│  3   │ ring3_consensus.py    │ "Do 3 AI models agree on    │
-│      │                       │  the final answer?"         │
-└────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│ RING │ FILE                   │ ASKS                          │
+├───────────────────────────────────────────────────────────────┤
+│  1   │ ring1_ingest.py        │ "Is this doc suspicious       │
+│      │                        │  on its own?"                 │
+├───────────────────────────────────────────────────────────────┤
+│  2   │ ring2_retrieval.py     │ "Does this doc agree with     │
+│      │                        │  the others retrieved?"       │
+├───────────────────────────────────────────────────────────────┤
+│  3   │ ring3_consensus.py     │ "Do 3 AI models agree on      │
+│      │                        │  the final answer?"           │
+└───────────────────────────────────────────────────────────────┘
 
 SCALING TO 2M DOCS: change ONLY the retrieval index type
   (IndexFlatIP → IndexIVFFlat). Ring 1/2/3 math untouched.
+
+THREE DEMO_MODE FLAGS:
+  DEMO_MODE=1 → small KB, fake LLMs   (default, instant)
+  DEMO_MODE=0 → small KB, real LLMs   (your live demo)
+  DEMO_MODE=2 → big KB,   real LLMs   (scale testing, NEW)
 ```
 
 [⬆ Back to top](#top)
 
 ---
 
-<a id="k-exam-hacks"></a>
-## K. Exam Hacks
+<a id="l-exam-hacks"></a>
+## L. Exam Hacks
 
 ```
 TRAP: "Isn't Stealth Lens basically your Ring 3?"
@@ -419,14 +487,22 @@ TRAP: "Does the math change at 2 million documents?"
 SAFE: "No — Ring 1/2/3 formulas operate on the retrieved top-K set
        or LLM text answers, never the full corpus. Only the FAISS
        index type changes (exact → approximate)."
+
+TRAP: "What's the difference between DEMO_MODE=0 and DEMO_MODE=2?"
+SAFE: "Same real LLMs in both. DEMO_MODE=0 uses the small 12-document
+       built-in KB. DEMO_MODE=2 uses your own large dataset — from
+       5,000 up to 2.6 million documents — to prove the defense
+       actually holds at real-world scale, not just in a toy demo."
 ```
 
 [⬆ Back to top](#top)
 
 ---
 
-## 🔚 Bottom Navigation
+## 🔚 BOTTOM NAVIGATION — Jump to any file
 
-[⬅ Repo Home](../../README.md) · [Docs Index](../README.md) · [🏠 Study Index](RAGSHIELD_INDEX.md) · [🎓 Math Primer](RAGSHIELD_MATH_PRIMER.md) · [🧮 Numericals ➡](RAGSHIELD_NUMERICALS.md) · [🛠️ Practice ➡](RAGSHIELD_PRACTICE.md)
+**This file:** RAGSHIELD_THEORY.md (the story) → **Next:** [RAGSHIELD_NUMERICALS.md](RAGSHIELD_NUMERICALS.md#top) (the math) → **Then:** [RAGSHIELD_PRACTICE.md](RAGSHIELD_PRACTICE.md#top) (running it)
+ 
+[🏠 Repo Home](../../README.md) &nbsp;·&nbsp; [📂 Docs Index](../README.md) &nbsp;·&nbsp; [📘 Theory (you are here)](#top) &nbsp;·&nbsp; [🧮 Numericals](RAGSHIELD_NUMERICALS.md#top) &nbsp;·&nbsp; [🛠️ Practice](RAGSHIELD_PRACTICE.md#top) &nbsp;·&nbsp; [📖 Architectures](RAG_ARCHITECTURES.md#top)
 
 [⬆ Back to top](#top)
