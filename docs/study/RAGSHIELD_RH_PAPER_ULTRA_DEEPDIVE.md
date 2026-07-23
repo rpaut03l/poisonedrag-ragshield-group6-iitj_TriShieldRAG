@@ -89,7 +89,7 @@ This is genuinely useful — it lets an AI answer questions about company docume
                     ┌──────────────────┐
                     │  Search the      │◄──── Knowledge Base
                     │  Knowledge Base  │      (millions of documents)
-                    └─────────┬─────────┘
+                    └─────────┬────────┘
                               │  (returns the 5 most
                               │   relevant documents)
                               ▼
