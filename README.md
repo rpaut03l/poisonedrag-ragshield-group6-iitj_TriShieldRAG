@@ -2,7 +2,7 @@
 
 <div align="center">
 
-# 🛡️ PoisonedRAG + RAG-Shield (The 3R's)
+# 🛡️ PoisonedRAG + RAG-Shield (The 3R's) aka TriShieldRAG: A Three-Ring Defense-in-Depth Framework Against Knowledge Corruption in Retrieval-Augmented Generation
 
 ### Break a state-of-the-art RAG poisoning attack — then build the defense its own authors said didn't exist yet.
 
