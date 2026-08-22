@@ -48,6 +48,33 @@ class CrossLLMConsensus:
         s = s.lower()
         return any(p in s for p in self._NO_ANSWER)
 
+    # ── Per-vendor trust weights ──────────────────────────────────────────
+    # The paper specifies a WEIGHTED cross-LLM vote (Claude 0.45, Mistral
+    # Small 0.35, Llama 3.2 0.20), reflecting that the panel members are not
+    # equally reliable. The implementation previously used an UNWEIGHTED
+    # headcount (frac = len(best_pool) / len(answers)), so a 2-of-3 majority
+    # of the two weaker models could override the strongest one.
+    #
+    # That is not hypothetical: in the adaptive-attacker run, Claude answered
+    # "Elvis Presley" (correct) and was outvoted by Mistral and Llama, both
+    # of which repeated the poison's "Frank Sinatra". Same pattern on the
+    # 2017 AL pennant question, where Claude explicitly flagged conflicting
+    # evidence and was overruled.
+    #
+    # Weights are matched by substring against the backend's name so the
+    # table survives model-version changes; anything unrecognised falls back
+    # to _DEFAULT_WEIGHT rather than silently scoring zero.
+    _TRUST_WEIGHTS = {"claude": 0.45, "mistral": 0.35, "llama": 0.20,
+                      "ollama": 0.20}
+    _DEFAULT_WEIGHT = 0.20
+
+    def _weight_for(self, llm_name: str) -> float:
+        n = (llm_name or "").lower()
+        for key, w in self._TRUST_WEIGHTS.items():
+            if key in n:
+                return w
+        return self._DEFAULT_WEIGHT
+
     def vote(self, question: str, context_docs: list[dict],
              candidates: Optional[list[str]] = None) -> dict:
         answers = []
@@ -79,10 +106,16 @@ class CrossLLMConsensus:
                     buckets["other"].append(a)
 
             # find the largest bucket
-            best_key = max(buckets, key=lambda k: len(buckets[k]))
+            # Weighted vote: a bucket's strength is the SUM OF TRUST WEIGHTS
+            # of the models in it, not how many models it contains.
+            def _bucket_weight(key):
+                return sum(self._weight_for(a["llm"]) for a in buckets[key])
+
+            total_w = sum(self._weight_for(a["llm"]) for a in answers) or 1.0
+            best_key = max(buckets, key=_bucket_weight)
             best_pool = buckets[best_key]
             agree_n = len(best_pool)
-            frac = agree_n / len(answers)
+            frac = _bucket_weight(best_key) / total_w
             agreed = frac >= self.agreement
             # winner = shortest answer in the winning bucket (cleaner display)
             winner_entry = min(best_pool, key=lambda a: len(a["answer"])) \
@@ -90,17 +123,22 @@ class CrossLLMConsensus:
             winner = winner_entry["answer"]
         else:
             # fallback: exact-norm match (no candidates given)
-            norm = [self._norm(a["answer"]) for a in pool]
-            tally = Counter(norm)
-            top, count = tally.most_common(1)[0]
+            tally = {}
+            for a in pool:
+                tally[self._norm(a["answer"])] = tally.get(
+                    self._norm(a["answer"]), 0.0) + self._weight_for(a["llm"])
+            top = max(tally, key=tally.get)
             agree_n = sum(1 for a in answers if self._norm(a["answer"]) == top)
-            frac = agree_n / len(answers)
+            total_w = sum(self._weight_for(a["llm"]) for a in answers) or 1.0
+            frac = tally[top] / total_w
             agreed = frac >= self.agreement
             winner = next(a["answer"] for a in pool if self._norm(a["answer"]) == top)
 
         return {
-            "answers":   answers,
+            "answers":   [{**a, "weight": self._weight_for(a["llm"])}
+                          for a in answers],
             "agreement": round(frac, 2),
+            "weighted":  True,
             "agreed":    agreed,
             "answer":    winner,
         }

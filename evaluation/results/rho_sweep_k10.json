@@ -1,0 +1,122 @@
+{
+  "k": 10,
+  "n_questions": 10,
+  "poison_corpus": "baseline/poison_adaptive.jsonl",
+  "proposition_1_predicted_boundary": 0.5,
+  "observed_inversion_between": [
+    0.2,
+    0.3
+  ],
+  "rows": [
+    {
+      "rho": 0.0,
+      "n_poison": 0,
+      "consistency_poison": null,
+      "consistency_clean": 0.673,
+      "trust_poison": null,
+      "trust_clean": 0.592,
+      "inversion_rate": null,
+      "n_questions": 0
+    },
+    {
+      "rho": 0.1,
+      "n_poison": 1,
+      "consistency_poison": 0.551,
+      "consistency_clean": 0.672,
+      "trust_poison": 0.398,
+      "trust_clean": 0.592,
+      "inversion_rate": 0.0,
+      "n_questions": 10
+    },
+    {
+      "rho": 0.2,
+      "n_poison": 2,
+      "consistency_poison": 0.638,
+      "consistency_clean": 0.659,
+      "trust_poison": 0.428,
+      "trust_clean": 0.589,
+      "inversion_rate": 0.0,
+      "n_questions": 10
+    },
+    {
+      "rho": 0.3,
+      "n_poison": 3,
+      "consistency_poison": 0.68,
+      "consistency_clean": 0.65,
+      "trust_poison": 0.443,
+      "trust_clean": 0.587,
+      "inversion_rate": 0.0,
+      "n_questions": 10
+    },
+    {
+      "rho": 0.4,
+      "n_poison": 4,
+      "consistency_poison": 0.693,
+      "consistency_clean": 0.631,
+      "trust_poison": 0.448,
+      "trust_clean": 0.581,
+      "inversion_rate": 0.0,
+      "n_questions": 10
+    },
+    {
+      "rho": 0.5,
+      "n_poison": 5,
+      "consistency_poison": 0.713,
+      "consistency_clean": 0.61,
+      "trust_poison": 0.455,
+      "trust_clean": 0.575,
+      "inversion_rate": 0.0,
+      "n_questions": 10
+    },
+    {
+      "rho": 0.6,
+      "n_poison": 6,
+      "consistency_poison": null,
+      "consistency_clean": null,
+      "trust_poison": null,
+      "trust_clean": null,
+      "inversion_rate": null,
+      "n_questions": 0
+    },
+    {
+      "rho": 0.7,
+      "n_poison": 7,
+      "consistency_poison": null,
+      "consistency_clean": null,
+      "trust_poison": null,
+      "trust_clean": null,
+      "inversion_rate": null,
+      "n_questions": 0
+    },
+    {
+      "rho": 0.8,
+      "n_poison": 8,
+      "consistency_poison": null,
+      "consistency_clean": null,
+      "trust_poison": null,
+      "trust_clean": null,
+      "inversion_rate": null,
+      "n_questions": 0
+    },
+    {
+      "rho": 0.9,
+      "n_poison": 9,
+      "consistency_poison": null,
+      "consistency_clean": null,
+      "trust_poison": null,
+      "trust_clean": null,
+      "inversion_rate": null,
+      "n_questions": 0
+    },
+    {
+      "rho": 1.0,
+      "n_poison": 10,
+      "consistency_poison": null,
+      "consistency_clean": null,
+      "trust_poison": null,
+      "trust_clean": null,
+      "inversion_rate": null,
+      "n_questions": 0
+    }
+  ]
+}
