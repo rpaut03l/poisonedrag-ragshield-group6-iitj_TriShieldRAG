@@ -1,4 +1,4 @@
-# RAG-Shield (A Three Ring Defense System) — Roadmap to USENIX Security / NDSS / S&P Submission
+# TriShieldRAG (A Three Ring Defense System) — Roadmap to USENIX Security / NDSS / S&P Submission
 
 This file is the persistent checklist for taking RAG-Shield from its
 current arXiv-ready initial version to a genuinely competitive
