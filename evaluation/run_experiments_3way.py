@@ -72,7 +72,7 @@ def main():
     out = config.RESULTS_DIR / "asr_results_3way.json"
     out.write_text(json.dumps({"summary": summary, "rows": rows}, indent=2))
 
-    print("\n=== RAG-Shield 3-Way Evaluation ===")
+    print("\n=== TriShieldRAG 3-Way Evaluation ===")
     print(f"mode={summary['mode']}  questions={n}  elapsed={summary['elapsed_sec']}s")
     print(f"{'question':45} {'none':16} {'paper-def':16} {'full':16}")
     print("-" * 95)
