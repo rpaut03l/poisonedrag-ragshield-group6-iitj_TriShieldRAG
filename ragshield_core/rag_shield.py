@@ -17,6 +17,7 @@ from .ring1_ingest import IngestGuard
 from .ring2_retrieval import RetrievalScorer
 from .ring3_consensus import CrossLLMConsensus
 from .llm_backends import make_consensus_panel
+from .paper_baseline import PaperBaselineDefense
 from . import config
 from .raglog import log
 
@@ -29,6 +30,12 @@ class RAGShield:
         self.scorer = RetrievalScorer()
         self.panel = make_consensus_panel()
         self.consensus = CrossLLMConsensus(self.panel)
+        # NEW: third evaluation arm -- reproduces PoisonedRAG's OWN
+        # tested defenses (perplexity + duplicate-text filtering),
+        # separate from RAG-Shield's own Ring 1/2/3. See
+        # paper_baseline.py for why this is a faithful, not
+        # artificially weak or strong, reproduction.
+        self.paper_baseline = PaperBaselineDefense()
         self._questions = [t["question"] for t in load_targets()]
 
     # ---------- setup ----------
@@ -72,7 +79,25 @@ class RAGShield:
             t["mode"] = "no-defense"
             return t
 
-        # ----- DEFENSE ON -----
+        # ----- NEW: PAPER'S DEFENSES BASELINE (third evaluation arm) -----
+        # Faithful reproduction of PoisonedRAG's own tested defenses
+        # (perplexity + duplicate-text filtering), NOT RAG-Shield's
+        # Ring 1/2/3. See paper_baseline.py docstring for why this is
+        # expected to perform close to no-defense, not somewhere
+        # comfortably in the middle.
+        if defense == "paper_baseline":
+            log("  PAPER BASELINE (perplexity + duplicate-text filtering)...")
+            kept_pb, blocked_pb = self.paper_baseline.filter_corpus(retrieved)
+            log(f"  PAPER BASELINE -> blocked {len(blocked_pb)}, kept {len(kept_pb)}")
+            t["paper_baseline_blocked"] = blocked_pb
+            use_docs = kept_pb if kept_pb else retrieved  # fail-open, same policy as Ring 1
+            llm = self.panel[0]
+            t["answer"] = llm.answer_with_context(question, use_docs, candidates)
+            log(f"  ANSWER (paper-baseline) -> {t['answer'][:60]!r}")
+            t["mode"] = "paper-baseline"
+            return t
+
+        # ----- DEFENSE ON (full RAG-Shield: Ring 1 + Ring 2 + Ring 3) -----
         # Ring 1: screen the retrieved docs at query time (ingest-style checks)
         log("  RING 1 (Ingest Guard): screening retrieved docs...")
         kept1, blocked1 = self.ingest.filter_corpus(retrieved, self._questions)

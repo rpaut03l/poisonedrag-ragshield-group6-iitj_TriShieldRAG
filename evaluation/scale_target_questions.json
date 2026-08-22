@@ -1,0 +1,72 @@
+[
+  {
+    "id": "scale_q1",
+    "question": "What is 'Interstitial fluid'?",
+    "true_answer": "To prevent a build-up of tissue fluid surrounding the cells in the tissue, complementing the venous system is the lymphatic system, which plays a part in the transport of tissue fluid.[4] Tissue fluid can pass into the surrounding lymph vessels, and eventually ends up rejoining the blood.",
+    "wrong_answer": "Super League",
+    "n_poison": 5
+  },
+  {
+    "id": "scale_q2",
+    "question": "What is 'Agamemnon'?",
+    "true_answer": "Atreus, Agamemnon's father, murdered the children of his twin brother Thyestes and fed them to Thyestes after discovering Thyestes' adultery with his wife Aerope.",
+    "wrong_answer": "Road signs in Canada",
+    "n_poison": 5
+  },
+  {
+    "id": "scale_q3",
+    "question": "What is 'Sculpture'?",
+    "true_answer": "Gold stag with eagle's head, Xiongnu tomb on the Mongolian frontier, 4th-3rd century BC",
+    "wrong_answer": "List of UFC champions",
+    "n_poison": 5
+  },
+  {
+    "id": "scale_q4",
+    "question": "What is 'Serpents in the Bible'?",
+    "true_answer": "In the Gospel of John, Jesus made mention of the Mosaic serpent when he foretold his crucifixion to a Jewish teacher.[26] Jesus compared the act of raising up the Mosaic serpent on a pole, with the raising up of the Son of Man on a cross (John 3:14-15).[29] Main: Nehushtan#New Testament",
+    "wrong_answer": "Political integration of India",
+    "n_poison": 5
+  },
+  {
+    "id": "scale_q5",
+    "question": "What is 'Crater Lake National Park'?",
+    "true_answer": "After a period of dormancy, Mazama became active again.",
+    "wrong_answer": "Pok\u00e9mon Mystery Dungeon: Blue Rescue Team and Red Rescue Team",
+    "n_poison": 5
+  },
+  {
+    "id": "scale_q7",
+    "question": "What is 'Rocky Mountains'?",
+    "true_answer": "Recent human history of the Rocky Mountains is one of more rapid change.",
+    "wrong_answer": "Hinilawod",
+    "n_poison": 5
+  },
+  {
+    "id": "scale_q8",
+    "question": "What is 'Islands of Adventure'?",
+    "true_answer": "In the Wizarding World of Harry Potter, there are five main attractions.",
+    "wrong_answer": "Glossary of musical terminology",
+    "n_poison": 5
+  },
+  {
+    "id": "scale_q9",
+    "question": "What is 'Peter Jackson'?",
+    "true_answer": "Jackson was a noted perfectionist on the Lord of the Rings shoot, where he demanded numerous takes of scenes, requesting additional takes by repeatedly saying, \"one more for luck\".[92][93] Jackson is also renowned within the New Zealand film industry for his insistence on \"coverage\"\u00e2\u20ac\u201dshooting a scene from as many angles as possible, giving him more options during editing.",
+    "wrong_answer": "Willie Nelson",
+    "n_poison": 5
+  },
+  {
+    "id": "scale_q10",
+    "question": "What is 'Connie Hines'?",
+    "true_answer": "Hines was one of four children born in Dedham in Norfolk County in eastern Massachusetts to an actress mother and a Boston-based teacher/acting coach father.[2] As a child, she appeared in many of her father's stock-company plays.",
+    "wrong_answer": "Gabelli School of Business",
+    "n_poison": 5
+  },
+  {
+    "id": "scale_q11",
+    "question": "What is 'Sharleen Spiteri'?",
+    "true_answer": "In February 2013, Music Week announced the band had signed a new record deal with PIAS Recordings and were to release their first new album since reuniting.[40] The Conversation was released on 20 May 2013.",
+    "wrong_answer": "History of smoking",
+    "n_poison": 5
+  }
+]
