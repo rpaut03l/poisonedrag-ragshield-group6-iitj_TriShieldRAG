@@ -17,6 +17,7 @@ from .ring1_ingest import IngestGuard
 from .ring2_retrieval import RetrievalScorer
 from .ring3_consensus import CrossLLMConsensus
 from .llm_backends import make_consensus_panel
+from .paper_baseline import PaperBaselineDefense
 from . import config
 from .raglog import log
 
@@ -29,6 +30,12 @@ class RAGShield:
         self.scorer = RetrievalScorer()
         self.panel = make_consensus_panel()
         self.consensus = CrossLLMConsensus(self.panel)
+        # NEW: third evaluation arm -- reproduces PoisonedRAG's OWN
+        # tested defenses (perplexity + duplicate-text filtering),
+        # separate from RAG-Shield's own Ring 1/2/3. See
+        # paper_baseline.py for why this is a faithful, not
+        # artificially weak or strong, reproduction.
+        self.paper_baseline = PaperBaselineDefense()
         self._questions = [t["question"] for t in load_targets()]
 
     # ---------- setup ----------
@@ -72,20 +79,61 @@ class RAGShield:
             t["mode"] = "no-defense"
             return t
 
-        # ----- DEFENSE ON -----
+        # ----- NEW: PAPER'S DEFENSES BASELINE (third evaluation arm) -----
+        # Faithful reproduction of PoisonedRAG's own tested defenses
+        # (perplexity + duplicate-text filtering), NOT RAG-Shield's
+        # Ring 1/2/3. See paper_baseline.py docstring for why this is
+        # expected to perform close to no-defense, not somewhere
+        # comfortably in the middle.
+        if defense == "paper_baseline":
+            log("  PAPER BASELINE (perplexity + duplicate-text filtering)...")
+            kept_pb, blocked_pb = self.paper_baseline.filter_corpus(retrieved)
+            log(f"  PAPER BASELINE -> blocked {len(blocked_pb)}, kept {len(kept_pb)}")
+            t["paper_baseline_blocked"] = blocked_pb
+            use_docs = kept_pb if kept_pb else retrieved  # fail-open, same policy as Ring 1
+            llm = self.panel[0]
+            t["answer"] = llm.answer_with_context(question, use_docs, candidates)
+            log(f"  ANSWER (paper-baseline) -> {t['answer'][:60]!r}")
+            t["mode"] = "paper-baseline"
+            return t
+
+        # ----- DEFENSE ON (full RAG-Shield: Ring 1 + Ring 2 + Ring 3) -----
         # Ring 1: screen the retrieved docs at query time (ingest-style checks)
         log("  RING 1 (Ingest Guard): screening retrieved docs...")
-        kept1, blocked1 = self.ingest.filter_corpus(retrieved, self._questions)
+        # FIXED (target-question leak): previously passed self._questions,
+        # the FULL list of questions the attacker chose to target. A real
+        # defender does not have that list -- it only sees the query the
+        # user just sent. Passing [question] restricts the verbatim-question
+        # check to the incoming query alone, which is what Algorithm 1's
+        # kbQ input can defensibly mean in deployment.
+        kept1, blocked1 = self.ingest.filter_corpus(retrieved, [question])
         log(f"  RING 1 -> blocked {len(blocked1)} poison doc(s)")
         t["ring1_blocked"] = blocked1
         if kept1:
             retrieved = kept1
         else:
+            # FIXED (oracle leak): the previous version filtered the wider
+            # re-retrieval with `d.get("source") != "POISONED"`, i.e. it read
+            # the attack's own ground-truth label to decide what to keep. No
+            # deployable defense can do that -- knowing which documents are
+            # poisoned IS the problem being solved. That filter fired on 6/10
+            # questions in the 2.68M-scale run and was directly responsible
+            # for the 0% ASR reported there.
+            #
+            # THE FIX: re-retrieve a wider pool, exclude only what Ring 1
+            # already blocked on its own detector evidence, then run those
+            # same detectors over the newly-surfaced candidates. If poison
+            # survives, it survives -- Rings 2 and 3 still get their chance.
             blocked_ids = {b.get("id") for b in blocked1}
             wider = self.retriever.retrieve(question, self.top_k * 6)
-            retrieved = [d for d in wider if d.get("id") not in blocked_ids
-                         and d.get("source") != "POISONED"][: self.top_k]
-            log(f"  RING 1 -> all poison; re-retrieved {len(retrieved)} clean doc(s) from KB")
+            fresh = [d for d in wider if d.get("id") not in blocked_ids]
+            rescreened_keep, rescreened_block = self.ingest.filter_corpus(
+                fresh, [question])
+            t["ring1_blocked"] = blocked1 + rescreened_block
+            retrieved = rescreened_keep[: self.top_k]
+            n_surv = sum(1 for d in retrieved if d.get("source") == "POISONED")
+            log(f"  RING 1 -> all top-k blocked; re-retrieved {len(retrieved)} "
+                f"doc(s) from wider pool after re-screening ({n_surv} still poison)")
 
         # Ring 2: rescore + drop low-trust
         log("  RING 2 (Retrieval Scorer): re-ranking by trust...")

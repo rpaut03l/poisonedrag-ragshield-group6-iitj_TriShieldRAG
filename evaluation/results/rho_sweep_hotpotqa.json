@@ -1,0 +1,72 @@
+{
+  "k": 5,
+  "n_questions": 100,
+  "poison_corpus": "baseline/hotpotqa_adaptive.jsonl",
+  "proposition_1_predicted_boundary": 0.5,
+  "observed_inversion_between": [
+    0.2,
+    0.4
+  ],
+  "rows": [
+    {
+      "rho": 0.0,
+      "n_poison": 0,
+      "consistency_poison": null,
+      "consistency_clean": 0.521,
+      "trust_poison": null,
+      "trust_clean": 0.529,
+      "inversion_rate": null,
+      "n_questions": 0
+    },
+    {
+      "rho": 0.2,
+      "n_poison": 1,
+      "consistency_poison": 0.468,
+      "consistency_clean": 0.517,
+      "trust_poison": 0.369,
+      "trust_clean": 0.528,
+      "inversion_rate": 0.0,
+      "n_questions": 100
+    },
+    {
+      "rho": 0.4,
+      "n_poison": 2,
+      "consistency_poison": 0.646,
+      "consistency_clean": 0.501,
+      "trust_poison": 0.431,
+      "trust_clean": 0.525,
+      "inversion_rate": 0.03,
+      "n_questions": 100
+    },
+    {
+      "rho": 0.6,
+      "n_poison": 3,
+      "consistency_poison": 0.705,
+      "consistency_clean": 0.477,
+      "trust_poison": 0.451,
+      "trust_clean": 0.518,
+      "inversion_rate": 0.2,
+      "n_questions": 100
+    },
+    {
+      "rho": 0.8,
+      "n_poison": 4,
+      "consistency_poison": 0.731,
+      "consistency_clean": 0.358,
+      "trust_poison": 0.461,
+      "trust_clean": 0.48,
+      "inversion_rate": 0.63,
+      "n_questions": 100
+    },
+    {
+      "rho": 1.0,
+      "n_poison": 5,
+      "consistency_poison": 0.729,
+      "consistency_clean": null,
+      "trust_poison": 0.46,
+      "trust_clean": null,
+      "inversion_rate": null,
+      "n_questions": 0
+    }
+  ]
+}

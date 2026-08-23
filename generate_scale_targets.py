@@ -50,6 +50,43 @@ def _looks_like_placeholder(text: str) -> bool:
     return "placeholder" in text.lower() and "meta.json" in text.lower()
 
 
+# ── NEW: HTML/CSS contamination filter ──────────────────────────────
+# build_embeddings.py's HTML fallback only strips TAGS
+# (re.sub(r"<[^>]+>", " ", raw_html)) — it never removes the CONTENT
+# of <style> or <script> blocks, since that content sits BETWEEN two
+# tags, not inside one. A page with an inline stylesheet like
+#   <style>.referencetooltip{position:absolute;...}</style>
+# has its tags stripped but the raw CSS text survives untouched and
+# ends up in meta.json's "text" field. _extract_fact_sentence() below
+# then has a good chance of picking that CSS as the "first real
+# sentence" (it has 5+ space-separated tokens, so it passes the old
+# length check) — which is exactly how a true_answer ends up being
+# ".referencetooltip{position:absolute;...}" instead of an actual
+# fact. This filter rejects any candidate sentence/title that still
+# looks like markup/CSS/JS before it can become a question's answer.
+_CONTAMINATION_MARKERS = (
+    "{", "}", ";}", "position:", "referencetooltip", ".css",
+    "<style", "</style", "<script", "</script", "javascript:",
+    "function(", "px;", "display:none", "!important",
+)
+
+
+def _looks_contaminated(text: str) -> bool:
+    """True if `text` still contains leftover HTML/CSS/JS markup."""
+    if not text:
+        return True
+    lowered = text.lower()
+    if any(marker in lowered for marker in _CONTAMINATION_MARKERS):
+        return True
+    # CSS/markup is symbol-dense compared to real prose — a real
+    # sentence like "Martin Eberhard founded Tesla Motors in 2003."
+    # has very few of {}<>;: characters relative to its length.
+    symbol_count = sum(text.count(c) for c in "{}<>;")
+    if len(text) > 0 and symbol_count / len(text) > 0.02:
+        return True
+    return False
+
+
 def _extract_fact_sentence(text: str) -> str:
     """
     Pulls the first reasonably substantial sentence out of a
@@ -125,11 +162,15 @@ def main():
     # real to actually detect and defend against.
     all_titles = [d.get("title", "").strip() for d in r.docs
                   if d.get("title", "").strip()
-                  and not _looks_like_placeholder(d.get("text", ""))]
+                  and not _looks_like_placeholder(d.get("text", ""))
+                  and not _looks_contaminated(d.get("title", ""))]
 
-    sampled = random.sample(r.docs, min(args.n_questions * 2, len(r.docs)))
-    # sample MORE than needed, since some will be skipped for
-    # placeholder/too-short text below
+    # Oversample generously (10x instead of 2x): on top of the
+    # existing placeholder/too-short skips, contaminated documents
+    # (see _looks_contaminated above) now also get skipped, and on a
+    # 2.68M-doc corpus a non-trivial fraction carry leftover CSS/JS.
+    sample_pool = min(args.n_questions * 10, len(r.docs))
+    sampled = random.sample(r.docs, sample_pool)
 
     targets = []
     skipped = 0
@@ -140,11 +181,16 @@ def main():
         title = doc.get("title", f"Document {i}")
         text = doc.get("text", "")
 
-        if _looks_like_placeholder(text) or len(text.split()) < 8:
+        if (_looks_like_placeholder(text) or len(text.split()) < 8
+                or _looks_contaminated(title)):
             skipped += 1
             continue   # skip documents with no real, question-worthy content
 
         fact = _extract_fact_sentence(text)
+
+        if _looks_contaminated(fact):
+            skipped += 1
+            continue   # first sentence was leftover CSS/JS, not a real fact
 
         # ── FIXED question style: previously the question QUOTED the
         # first 60 characters of the answer INSIDE itself ("what does
@@ -173,11 +219,37 @@ def main():
         })
 
     if skipped:
-        print(f"Skipped {skipped} documents with placeholder/too-short text.")
+        print(f"Skipped {skipped} documents (placeholder / too-short / "
+              f"leftover HTML-CSS-JS contamination).")
 
     if not targets:
         print("\nERROR: no usable documents found — cannot generate any "
               "target questions. See the meta.json fix message above.")
+        sys.exit(1)
+
+    if len(targets) < args.n_questions:
+        print(f"\nWARNING: only found {len(targets)} clean documents out of "
+              f"the {args.n_questions} requested (pool of {sample_pool} "
+              f"sampled). Re-run with a larger --n-questions oversample "
+              f"pool, or increase the '10x' multiplier above, if this "
+              f"keeps happening — it means contamination is common in "
+              f"this corpus.")
+
+    # ── Final safety net: refuse to write a file that still contains
+    # contaminated true_answer/wrong_answer values. This is what was
+    # missing before — the old script trusted its own filters and
+    # wrote whatever it built. Now it double-checks every single
+    # target right before saving, so a corrupted file can never be
+    # produced silently again. ──
+    bad = [t["id"] for t in targets
+           if _looks_contaminated(t["true_answer"])
+           or _looks_contaminated(t["wrong_answer"])
+           or _looks_contaminated(t["question"])]
+    if bad:
+        print(f"\nERROR: contamination slipped through the filter for: "
+              f"{bad}. Not writing the output file. Tighten "
+              f"_CONTAMINATION_MARKERS / the symbol-density threshold "
+              f"and re-run.")
         sys.exit(1)
 
     output_path = Path("evaluation/scale_target_questions.json")
