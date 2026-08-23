@@ -44,40 +44,47 @@ def question_appendix(letter, corpus, targets_path, nonad_glob, ad_glob):
     na, ad = outcomes(nonad_glob), outcomes(ad_glob)
     if not na and not ad: return
 
+    # longtable cannot break pages in twocolumn mode, and these tables are
+    # wide, so they get a full single-column page.
+    w(r"\onecolumn")
     w(r"\section{Target questions and per-question outcomes: %s}" % corpus)
     w(r"\label{sec:app%s}" % letter)
     w(r"""
 All %d target questions, taken unmodified from the artifact released with
 \cite{zou2024poisonedrag}. $t_q$ is the ground-truth answer supplied with the
-artifact and $w_q$ the attacker's chosen answer. The outcome columns give the
-fraction of trials in which the pipeline returned $w_q$: \texttt{n} for the
-undefended baseline, \texttt{p} for the prior-work reproduction and \texttt{T}
-for the full three-ring pipeline, under the non-adaptive (NA) and adaptive (A)
-attackers respectively. A dash indicates the configuration was not run for that
-corpus.
+artifact and $w_q$ the attacker's chosen answer.
+
+Each outcome cell holds a triple $n/p/T$: the number of trials in which the
+undefended baseline ($n$), the prior-work reproduction ($p$) and the full
+three-ring pipeline ($T$) returned the attacker's answer, out of the number of
+trials shown in parentheses. \textbf{NA} is the non-adaptive attacker,
+\textbf{A} the adaptive one. A dash means the configuration was not run for
+that corpus. Rows where $T$ exceeds $n$ under \textbf{A} are the questions on
+which the defense actively harmed the answer.
 """ % len(tg))
-    w(r"\begin{longtable}{@{}p{4.6cm}p{2.2cm}p{2.2cm}cccccc@{}}")
+    w(r"\begin{longtable}{@{}p{6.6cm}p{2.9cm}p{2.9cm}cc@{}}")
     w(r"\toprule")
     w(r"\rowcolor{shieldblueLight}")
-    w(r"\textbf{Target question} & $t_q$ & $w_q$ & "
-      r"\multicolumn{3}{c}{\textbf{NA}} & \multicolumn{3}{c}{\textbf{A}} \\")
+    w(r"\textbf{Target question} & \textbf{$t_q$} & \textbf{$w_q$} & "
+      r"\textbf{NA} & \textbf{A} \\")
     w(r"\rowcolor{shieldblueLight}")
-    w(r" & & & n & p & T & n & p & T \\")
+    w(r" & & & {\footnotesize $n/p/T$} & {\footnotesize $n/p/T$} \\")
     w(r"\midrule\endhead")
     for i, t in enumerate(tg):
-        def cells(d):
+        def triple(d):
             v = d.get(t["id"])
-            if not v: return ["---"] * 3
-            n = len(v)
-            return [f"{sum(x[j] for x in v)}/{n}" for j in range(3)]
-        row = ([esc(t["question"])[:58], esc(t["true_answer"])[:22],
-                esc(t["wrong_answer"])[:22]] + cells(na) + cells(ad))
+            if not v: return "---"
+            return "/".join(str(sum(x[k] for x in v)) for k in range(3)) \
+                   + r"\,\footnotesize(%d)" % len(v)
+        row = [esc(t["question"])[:78], esc(t["true_answer"])[:26],
+               esc(t["wrong_answer"])[:26], triple(na), triple(ad)]
         if i % 2: w(r"\rowcolor{neutralgray}")
         w(" & ".join(row) + r" \\")
     w(r"\bottomrule")
     w(r"\caption{%s target questions and per-question outcomes.}" % corpus)
     w(r"\label{tab:app%s}" % letter)
     w(r"\end{longtable}")
+    w(r"\twocolumn")
     w()
 
 question_appendix("A", "Natural Questions",
@@ -147,18 +154,21 @@ for gi, (label, pat) in enumerate(GROUPS):
     files = sorted(glob.glob(pat))
     if not files: continue
     vals = []
-    for i, f in enumerate(files, 1):
-        s = json.load(open(f))["summary"]
-        v = (s["asr_none_pct"], s["asr_paper_defenses_pct"], s["asr_full_pipeline_pct"])
-        vals.append(v)
-        if gi % 2: w(r"\rowcolor{neutralgray}")
-        w(f"{label if i==1 else ''} & {i} & {v[0]} & {v[1]} & {v[2]} \\\\")
+    for f in files:
+        s_ = json.load(open(f))["summary"]
+        vals.append((s_["asr_none_pct"], s_["asr_paper_defenses_pct"],
+                     s_["asr_full_pipeline_pct"]))
+    # multirow label spans the trial rows; no partial row shading, so no
+    # coloured empty cells.
+    for i, v in enumerate(vals, 1):
+        lab = r"\multirow{%d}{*}{%s}" % (len(vals), label) if i == 1 else ""
+        w(f"{lab} & {i} & {v[0]} & {v[1]} & {v[2]} \\\\")
     if len(vals) > 1:
         c = list(zip(*vals))
-        m = [f"{st.mean(x):.1f}$\\pm${st.stdev(x):.1f}" for x in c]
-        w(r"\rowcolor{safegreenLight}")
+        m = [f"$\\mathbf{{{st.mean(x):.1f}\\pm{st.stdev(x):.1f}}}$" for x in c]
+        w(r"\cmidrule(l){2-5}")
         w(f" & \\emph{{mean}} & {m[0]} & {m[1]} & {m[2]} \\\\")
-    w(r"\midrule")
+    if gi < len(GROUPS) - 1: w(r"\midrule")
 w(r"\bottomrule\end{tabular}")
 w(r"\caption{Individual trial results behind Table~\ref{tab:e2e}.}")
 w(r"\label{tab:apptrials}\end{table}")
