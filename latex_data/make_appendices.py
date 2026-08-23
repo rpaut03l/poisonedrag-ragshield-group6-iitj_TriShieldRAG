@@ -46,7 +46,6 @@ def question_appendix(letter, corpus, targets_path, nonad_glob, ad_glob):
 
     # longtable cannot break pages in twocolumn mode, and these tables are
     # wide, so they get a full single-column page.
-    w(r"\clearpage")
     w(r"\onecolumn")
     w(r"\section{Target questions and per-question outcomes: %s}" % corpus)
     w(r"\label{sec:app%s}" % letter)
@@ -85,9 +84,7 @@ which the defense actively harmed the answer.
     w(r"\caption{%s target questions and per-question outcomes.}" % corpus)
     w(r"\label{tab:app%s}" % letter)
     w(r"\end{longtable}")
-    w(r"\clearpage")
     w(r"\twocolumn")
-    w(r"\clearpage")
     w()
 
 question_appendix("A", "Natural Questions",
@@ -145,8 +142,8 @@ Each end-to-end configuration was repeated. Table~\ref{tab:e2e} reports the mean
 and standard deviation; this appendix gives the individual trials, so that the
 spread can be inspected directly rather than taken on trust.
 """)
-w(r"\begin{table}[htbp]\centering\small\setlength{\tabcolsep}{5pt}")
-w(r"\begin{tabular}{@{}llrrr@{}}")
+w(r"\begin{table*}[t]\centering\small\setlength{\tabcolsep}{7pt}")
+w(r"\begin{tabular}{@{}lrrrr@{}}")
 w(r"\toprule\rowcolor{shieldblueLight}")
 w(r"\textbf{Corpus / attacker} & \textbf{Trial} & \textbf{none} & "
   r"\textbf{prior} & \textbf{TriShield} \\")
@@ -176,7 +173,7 @@ for gi, (label, pat) in enumerate(GROUPS):
     if gi < len(GROUPS) - 1: w(r"\midrule")
 w(r"\bottomrule\end{tabular}")
 w(r"\caption{Individual trial results behind Table~\ref{tab:e2e}.}")
-w(r"\label{tab:apptrials}\end{table}")
+w(r"\label{tab:apptrials}\end{table*}")
 w()
 
 # ------------------------------------------------------------------
