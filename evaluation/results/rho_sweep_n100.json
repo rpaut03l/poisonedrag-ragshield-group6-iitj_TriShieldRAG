@@ -1,0 +1,72 @@
+{
+  "k": 5,
+  "n_questions": 100,
+  "poison_corpus": "baseline/poison_adaptive_n100.jsonl",
+  "proposition_1_predicted_boundary": 0.5,
+  "observed_inversion_between": [
+    0.2,
+    0.4
+  ],
+  "rows": [
+    {
+      "rho": 0.0,
+      "n_poison": 0,
+      "consistency_poison": null,
+      "consistency_clean": 0.563,
+      "trust_poison": null,
+      "trust_clean": 0.563,
+      "inversion_rate": null,
+      "n_questions": 0
+    },
+    {
+      "rho": 0.2,
+      "n_poison": 1,
+      "consistency_poison": 0.524,
+      "consistency_clean": 0.534,
+      "trust_poison": 0.388,
+      "trust_clean": 0.555,
+      "inversion_rate": 0.0,
+      "n_questions": 100
+    },
+    {
+      "rho": 0.4,
+      "n_poison": 2,
+      "consistency_poison": 0.633,
+      "consistency_clean": 0.501,
+      "trust_poison": 0.426,
+      "trust_clean": 0.545,
+      "inversion_rate": 0.0,
+      "n_questions": 100
+    },
+    {
+      "rho": 0.6,
+      "n_poison": 3,
+      "consistency_poison": 0.66,
+      "consistency_clean": 0.435,
+      "trust_poison": 0.436,
+      "trust_clean": 0.525,
+      "inversion_rate": 0.02,
+      "n_questions": 100
+    },
+    {
+      "rho": 0.8,
+      "n_poison": 4,
+      "consistency_poison": 0.673,
+      "consistency_clean": 0.333,
+      "trust_poison": 0.441,
+      "trust_clean": 0.493,
+      "inversion_rate": 0.32,
+      "n_questions": 100
+    },
+    {
+      "rho": 1.0,
+      "n_poison": 5,
+      "consistency_poison": 0.662,
+      "consistency_clean": null,
+      "trust_poison": 0.437,
+      "trust_clean": null,
+      "inversion_rate": null,
+      "n_questions": 0
+    }
+  ]
+}
