@@ -1,3 +1,4 @@
+\clearpage
 \onecolumn
 \section{Target questions and per-question outcomes: Natural Questions}
 \label{sec:appA}
@@ -175,8 +176,11 @@ a synonym for the content component of communication is & message & signal & 4/4
 \caption{Natural Questions target questions and per-question outcomes.}
 \label{tab:appA}
 \end{longtable}
+\clearpage
 \twocolumn
+\clearpage
 
+\clearpage
 \onecolumn
 \section{Target questions and per-question outcomes: HotpotQA}
 \label{sec:appB}
@@ -354,8 +358,11 @@ Is the Pakistan fast bowler who joined the Kent County Cricket Club in June, 2 &
 \caption{HotpotQA target questions and per-question outcomes.}
 \label{tab:appB}
 \end{longtable}
+\clearpage
 \twocolumn
+\clearpage
 
+\FloatBarrier
 \section{Complete $\rho$-sweep tables}
 \label{sec:appC}
 
@@ -366,7 +373,7 @@ fraction of questions on which the highest-trust document in the retrieved set
 is a malicious one. These are the tables from which every $\rho^{*}$ in
 Table~\ref{tab:rhostar} is interpolated.
 
-\begin{table}[htbp]
+\begin{table}[t]
 \caption{$\rho$ sweep, Natural Questions.}
 \centering\small\setlength{\tabcolsep}{5pt}
 \begin{tabular}{@{}rrrrrrr@{}}
@@ -384,7 +391,7 @@ $\rho$ & $n_p$ & $c_p$ & $c_c$ & $t_p$ & $t_c$ & \emph{inv} \\
 1.00 & 5 & 0.662 & --- & 0.437 & --- & --- \\
 \bottomrule\end{tabular}\end{table}
 
-\begin{table}[htbp]
+\begin{table}[t]
 \caption{$\rho$ sweep, HotpotQA.}
 \centering\small\setlength{\tabcolsep}{5pt}
 \begin{tabular}{@{}rrrrrrr@{}}
@@ -402,7 +409,7 @@ $\rho$ & $n_p$ & $c_p$ & $c_c$ & $t_p$ & $t_c$ & \emph{inv} \\
 1.00 & 5 & 0.729 & --- & 0.460 & --- & --- \\
 \bottomrule\end{tabular}\end{table}
 
-\begin{table}[htbp]
+\begin{table}[t]
 \caption{$\rho$ sweep, MS-MARCO.}
 \centering\small\setlength{\tabcolsep}{5pt}
 \begin{tabular}{@{}rrrrrrr@{}}
@@ -420,6 +427,7 @@ $\rho$ & $n_p$ & $c_p$ & $c_c$ & $t_p$ & $t_c$ & \emph{inv} \\
 1.00 & 5 & 0.639 & --- & 0.429 & --- & --- \\
 \bottomrule\end{tabular}\end{table}
 
+\FloatBarrier
 \section{Per-trial results}
 \label{sec:appD}
 
@@ -461,6 +469,7 @@ spread can be inspected directly rather than taken on trust.
 \caption{Individual trial results behind Table~\ref{tab:e2e}.}
 \label{tab:apptrials}\end{table}
 
+\FloatBarrier
 \section{Reproduction}
 \label{sec:appE}
 

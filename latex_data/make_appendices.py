@@ -46,6 +46,7 @@ def question_appendix(letter, corpus, targets_path, nonad_glob, ad_glob):
 
     # longtable cannot break pages in twocolumn mode, and these tables are
     # wide, so they get a full single-column page.
+    w(r"\clearpage")
     w(r"\onecolumn")
     w(r"\section{Target questions and per-question outcomes: %s}" % corpus)
     w(r"\label{sec:app%s}" % letter)
@@ -84,7 +85,9 @@ which the defense actively harmed the answer.
     w(r"\caption{%s target questions and per-question outcomes.}" % corpus)
     w(r"\label{tab:app%s}" % letter)
     w(r"\end{longtable}")
+    w(r"\clearpage")
     w(r"\twocolumn")
+    w(r"\clearpage")
     w()
 
 question_appendix("A", "Natural Questions",
@@ -99,6 +102,7 @@ question_appendix("B", "HotpotQA",
 # ------------------------------------------------------------------
 # Appendix C: complete rho sweeps, all corpora, every row
 # ------------------------------------------------------------------
+w(r"\FloatBarrier")
 w(r"\section{Complete $\rho$-sweep tables}")
 w(r"\label{sec:appC}")
 w(r"""
@@ -114,7 +118,7 @@ for label, path in [("Natural Questions", "evaluation/results/rho_sweep_n100.jso
                     ("MS-MARCO", "evaluation/results/rho_sweep_msmarco.json")]:
     d = load(path)
     if not d: continue
-    w(r"\begin{table}[htbp]")
+    w(r"\begin{table}[t]")
     w(r"\caption{$\rho$ sweep, %s.}" % label)
     w(r"\centering\small\setlength{\tabcolsep}{5pt}")
     w(r"\begin{tabular}{@{}rrrrrrr@{}}")
@@ -133,6 +137,7 @@ for label, path in [("Natural Questions", "evaluation/results/rho_sweep_n100.jso
 # ------------------------------------------------------------------
 # Appendix D: per-trial results, not just aggregates
 # ------------------------------------------------------------------
+w(r"\FloatBarrier")
 w(r"\section{Per-trial results}")
 w(r"\label{sec:appD}")
 w(r"""
@@ -177,6 +182,7 @@ w()
 # ------------------------------------------------------------------
 # Appendix E: reproduction guide
 # ------------------------------------------------------------------
+w(r"\FloatBarrier")
 w(r"""\section{Reproduction}
 \label{sec:appE}
 
