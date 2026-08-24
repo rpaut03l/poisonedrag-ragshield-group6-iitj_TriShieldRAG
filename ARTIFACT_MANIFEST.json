@@ -1,0 +1,38 @@
+{
+  "embeddings/nq_embeddings.npy": {
+    "sha256": "45f9000eecd8de3da891375b15302d3b846b37735f7f450707019c808e64fdd0",
+    "bytes": 8237469824
+  },
+  "embeddings/hotpotqa_embeddings.npy": {
+    "sha256": "7e29258e84dc34b7918a1081283eef5fe8b7ef205d7104e4df13dfa4be830f57",
+    "bytes": 16076786816
+  },
+  "embeddings/msmarco_embeddings.npy": {
+    "sha256": "e96c900968880c0120120aa673d4c32f29a8132b1df352951716f40e9adc80c6",
+    "bytes": 27162080384
+  },
+  "ragshield_2m.index": {
+    "sha256": "f970e9727d7059c13600f5c63e0fea94583f39e8d009db3d55701a4961e7b895",
+    "bytes": 8279095579
+  },
+  "hotpotqa.index": {
+    "sha256": "446c8af67e10b803e7316f53b2d829e801b1f8274752b1089f3a066f7d0c65ac",
+    "bytes": 16146835459
+  },
+  "msmarco.index": {
+    "sha256": "87cb17215522aaf024d37900e2c0277ddf7eb98afffabfa64b718938b69577a5",
+    "bytes": 27269448499
+  },
+  "embeddings/nq_embeddings.meta.json": {
+    "sha256": "1674f2b826f9e294a9ac1009d5aea8282ccd53af402cc8524f479aa72e3b7965",
+    "bytes": 1512665202
+  },
+  "embeddings/hotpotqa_embeddings.meta.json": {
+    "sha256": "dacf351ac90ce1e9a80c8668344d9ad956808dc8e78b3a420e749228706bb77c",
+    "bytes": 1931305469
+  },
+  "embeddings/msmarco_embeddings.meta.json": {
+    "sha256": "d9581d9967ae0f9068aefce153434e8bde4cf787fb06a53b6e2f12905ed5e446",
+    "bytes": 3657073610
+  }
+}
